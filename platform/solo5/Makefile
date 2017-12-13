@@ -20,8 +20,9 @@ ARCHDIR?= ${MACHINE}
 HW_MACHINE_ARCH?= ${MACHINE_GNU_ARCH}
 
 # XXX simplify kern.ldscript (some stuff is not needed anymore on solo5)
-LDSCRIPT:=	$(abspath kern.ldscript)
-SRCS+=		clock_subr.c kernel.c undefs.c boot.c cons.c
+# of even better, we could use the solo5 linker script
+LDSCRIPT:=	$(abspath arch/${ARCHDIR}/kern.ldscript)
+SRCS+=		kernel.c undefs.c boot.c cons.c
 
 INSTALLTGTS=    librumpnet_ukvmif_install
 

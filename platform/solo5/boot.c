@@ -25,7 +25,6 @@
 
 #include <hw/types.h>
 #include <hw/kernel.h>
-#include <hw/multiboot.h>
 
 #include <bmk-core/core.h>
 #include <bmk-core/mainthread.h>
@@ -56,11 +55,8 @@ int solo5_app_main(char *cmdline)
 	bmk_pgalloc_loadmem(heap, heap + HEAP_SIZE);
         bmk_memsize = HEAP_SIZE;
 
-	spl0();
-
 	bmk_sched_startmain(bmk_mainthread, cmdline);
-	bmk_printf("done with bmk_sched_startmain\n\n");
 
-	__asm__ __volatile__("cli; hlt");
-	while (1);
+	/* not reachable */
+	solo5_exit();
 }
