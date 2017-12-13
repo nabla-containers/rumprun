@@ -105,22 +105,23 @@ VIFHYPER_RECEIVE(void)
 	struct iovec iov[1];
 	int len = PKT_BUFFER_LEN;
 
+	// XXX: not sure if the receiver will free this buffer
 	uint8_t *data = bmk_memalloc(PKT_BUFFER_LEN, 0, BMK_MEMWHO_RUMPKERN);
 	if (data == NULL) {
 		solo5_console_write("malloc fail\n",13);
 		solo5_exit();
 	}
 
+	// XXX shouldn't abort if error
 	if (solo5_net_read_sync(data, &len) != 0) {
 		solo5_console_write("receive fail\n",13);
 		solo5_exit();
 	}
+
 	iov[0].iov_base = data;
 	iov[0].iov_len = len;
 
-	//rumpuser__hyp.hyp_schedule();
 	VIF_DELIVERPKT(iov, 1);
-	//rumpuser__hyp.hyp_unschedule();
 }
 
 void
@@ -128,11 +129,11 @@ VIFHYPER_SEND(struct virtif_user *viu,
 	struct iovec *iov, size_t iovlen)
 {
 	size_t tlen, i;
-	//int nlocks;
+	int nlocks;
 	void *d;
 	char *d0;
 
-	//rumpkern_unsched(&nlocks, NULL);
+	rumpkern_unsched(&nlocks, NULL);
 	/*
 	 * ukvm doesn't do scatter-gather, so just simply
 	 * copy the data into one lump here.  drop packet if we
@@ -161,13 +162,14 @@ VIFHYPER_SEND(struct virtif_user *viu,
 		}
 	}
 
+	// XXX: check for error
 	solo5_net_write_sync(d, tlen);
 
 	if (iovlen != 1)
 		bmk_memfree(d, BMK_MEMWHO_RUMPKERN);
 
 out:
-	//rumpkern_sched(nlocks, NULL);
+	rumpkern_sched(nlocks, NULL);
 	return;
 }
 #endif
