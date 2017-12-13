@@ -14,7 +14,10 @@ hw:
 
 .PHONY: run_hw
 run_hw: hw
-	rumprun kvm -g '-nographic -vga none' -i tcp-rumprun.bin {"cmdline":"","net":{"if":"virtionet0","cloner":"True","type":"inet","method":"static","addr":"10.0.0.2","mask":"16"}}
+	rumprun kvm -g '-nographic -vga none' -i \
+		-I if,vioif,"-net tap,script=no,ifname=tap100" \
+		-W if,inet,static,10.0.0.2/24 \
+		-- tcp-rumprun.bin
 
 .PHONY: run_ukvm
 run_ukvm: solo5
