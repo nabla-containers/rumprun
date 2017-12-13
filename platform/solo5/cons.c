@@ -26,15 +26,8 @@
 #include <hw/types.h>
 #include <hw/kernel.h>
 
-#include <arch/x86/cons.h>
-#include <arch/x86/hypervisor.h>
-
 #include <bmk-core/printf.h>
 #include <bmk-core/solo5.h>
-
-char bios_com1_base;
-char bios_crtc_base;
-
 
 void
 cons_putc(int _c)
@@ -49,7 +42,9 @@ cons_init(void)
 	bmk_printf_init(cons_putc, NULL);
 }
 
-static unsigned long strlen(const char * str)
+// XXX: get this from somewhere else
+static unsigned long
+strlen(const char * str)
 {
     const char *s;
     for (s = str; *s; ++s) {}

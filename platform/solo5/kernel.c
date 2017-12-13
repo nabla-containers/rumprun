@@ -51,13 +51,7 @@ bmk_platform_halt(const char *panicstring)
 	if (panicstring)
 		bmk_printf("PANIC: %s\n", panicstring);
 	bmk_printf("halted\n");
-	for (;;)
-		hlt();
-}
-
-void
-x86_initclocks(void)
-{
+	solo5_exit();
 }
 
 void rumpcomp_ukvmif_receive(void);
@@ -70,12 +64,14 @@ bmk_platform_cpu_block(bmk_time_t until_ns)
 	}
 }
 
-bmk_time_t bmk_platform_cpu_clock_monotonic(void)
+bmk_time_t
+bmk_platform_cpu_clock_monotonic(void)
 {
 	return solo5_clock_monotonic();
 }
 
-bmk_time_t bmk_platform_cpu_clock_epochoffset(void)
+bmk_time_t
+bmk_platform_cpu_clock_epochoffset(void)
 {
 	return solo5_clock_wall();
 }

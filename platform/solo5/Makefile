@@ -8,11 +8,7 @@ default: all
 # Check if we're building for a supported target.
 supported= false
 # assume we're doing "make clean"
-MACHINE?= i386
-ifeq (${MACHINE},i386)
-HW_MACHINE_ARCH=i386
-supported:= true
-endif
+MACHINE?= amd64
 ifeq (${MACHINE},amd64)
 supported:= true
 endif
@@ -32,8 +28,7 @@ INSTALLTGTS=    librumpnet_ukvmif_install
 include ../Makefile.inc
 include arch/${ARCHDIR}/Makefile.inc
 
-OBJS:=	$(patsubst %.c,${RROBJ}/platform/%.o,${SRCS}) \
-	$(patsubst %.S,${RROBJ}/platform/%.o,${ASMS})
+OBJS:=	$(patsubst %.c,${RROBJ}/platform/%.o,${SRCS})
 
 .PHONY:	clean cleandir all
 
