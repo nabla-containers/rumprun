@@ -15,7 +15,7 @@ run_hw: hw
 .PHONY: run_ukvm
 run_ukvm: solo5
 	touch dummy
-	../ukvm-bin --net=tap100 --disk=dummy ./helloer-rumprun.bin
+	./ukvm-bin ./helloer-rumprun.bin
 
 .PHONY: clean
 clean:
