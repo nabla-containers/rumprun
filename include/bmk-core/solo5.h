@@ -143,4 +143,6 @@ uint64_t solo5_clock_wall(void);
  */
 int solo5_poll(uint64_t until_nsecs);
 
+int solo5_setfs(uint64_t new_fs);
+
 #endif

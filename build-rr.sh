@@ -350,12 +350,12 @@ buildrump ()
 
 	extracflags=
 	[ "${MACHINE_GNU_ARCH}" = "x86_64" ] \
-	    && extracflags='-F CFLAGS=-mno-red-zone'
+	    && extracflags='-F CFLAGS=-mno-red-zone -F CFLAGS=-D_PTHREAD_GETTCB_EXT=_lwp_get_tls_tcb'
 
 	# build tools
 	${BUILDRUMP}/buildrump.sh ${BUILD_QUIET} ${STDJ} -k		\
 	    -s ${RUMPSRC} -T ${RUMPTOOLS} -o ${BROBJ} -d ${STAGING}	\
-	    -V MKPIC=no -V RUMP_CURLWP=__thread				\
+	    -V MKPIC=no -V RUMP_CURLWP=hypercall			\
 	    -V RUMP_KERNEL_IS_LIBC=1 -V BUILDRUMP_SYSROOT=yes		\
 	    ${extracflags} "$@" tools
 

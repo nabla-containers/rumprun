@@ -38,6 +38,12 @@ struct bmk_tcb {
 };
 
 struct bmk_thread;
+struct lwp *bmk_get_current_lwp(void);
+void bmk_set_current_lwp(struct lwp *lwp);
+
+struct rumprun_lwp;
+struct rumprun_lwp *bmk_get_current_lwp_me(void);
+void bmk_set_thread_lwp_me(struct bmk_thread *thread, struct rumprun_lwp *lwp);
 
 void	bmk_sched_init(void);
 void	bmk_sched_startmain(void (*)(void *), void *) __attribute__((noreturn));
@@ -80,7 +86,8 @@ void	bmk_cpu_sched_create(struct bmk_thread *, struct bmk_tcb *,
 void	bmk_sched_set_hook(void (*)(void *, void *));
 struct bmk_thread *bmk_sched_init_mainlwp(void *);
 
-extern __thread struct bmk_thread *bmk_current;
+//extern __thread struct bmk_thread *bmk_current;
+extern struct bmk_thread *bmk_current;
 
 int *bmk_sched_geterrno(void);
 const char 	*bmk_sched_threadname(struct bmk_thread *);

@@ -64,7 +64,12 @@ struct rumprun_lwp {
 	TAILQ_ENTRY(rumprun_lwp) rl_entries;
 };
 static TAILQ_HEAD(, rumprun_lwp) all_lwp = TAILQ_HEAD_INITIALIZER(all_lwp);
-static __thread struct rumprun_lwp *me;
+//static __thread struct rumprun_lwp *me;
+static struct rumprun_lwp *me(void);
+static struct rumprun_lwp *me(void)
+{
+	return bmk_get_current_lwp_me();
+}
 
 #define FIRST_LWPID 1
 static int curlwpid = FIRST_LWPID;
@@ -75,20 +80,23 @@ static struct rumprun_lwp mainthread = {
 
 static void rumprun_makelwp_tramp(void *);
 
+/*
 static ptrdiff_t meoff;
 static void
 assignme(void *tcb, struct rumprun_lwp *value)
 {
-	struct rumprun_lwp **dst = (void *)((uintptr_t)tcb + meoff);
+	//struct rumprun_lwp **dst = (void *)((uintptr_t)tcb + meoff);
 
-	*dst = value;
+	// *dst = value;
+	//bmk_set_thread_lwp_me(bmk_current, value);
 }
+*/
 
 int
 _lwp_ctl(int ctl, struct lwpctl **data)
 {
 
-	*data = (struct lwpctl *)&me->rl_lwpctl;
+	*data = (struct lwpctl *)&(me()->rl_lwpctl);
 	return 0;
 }
 
@@ -102,7 +110,7 @@ rumprun_makelwp(void (*start)(void *), void *arg, void *private,
 	rl = calloc(1, sizeof(*rl));
 	if (rl == NULL)
 		return errno;
-	assignme(private, rl);
+	//assignme(private, rl);
 
 	curlwp = rump_pub_lwproc_curlwp();
 	if ((errno = rump_pub_lwproc_newlwp(getpid())) != 0) {
@@ -121,6 +129,7 @@ rumprun_makelwp(void (*start)(void *), void *arg, void *private,
 		rump_pub_lwproc_switch(curlwp);
 		return EBUSY; /* ??? */
 	}
+	bmk_set_thread_lwp_me(rl->rl_thread, rl); // XXX
 	rump_pub_lwproc_switch(curlwp);
 
 	*lid = rl->rl_lwpid;
@@ -134,7 +143,7 @@ rumprun_makelwp_tramp(void *arg)
 {
 
 	rump_pub_lwproc_switch(arg);
-	(me->rl_start)(me->rl_arg);
+	(me()->rl_start)(me()->rl_arg);
 }
 
 static struct rumprun_lwp *
@@ -206,15 +215,16 @@ schedhook(void *prevcookie, void *nextcookie)
 void
 rumprun_lwp_init(void)
 {
-	void *tcb = bmk_sched_gettcb();
+	//void *tcb = bmk_sched_gettcb();
 
 	bmk_sched_set_hook(schedhook);
 
-	meoff = (uintptr_t)&me - (uintptr_t)tcb;
-	assignme(tcb, &mainthread);
+	//meoff = (uintptr_t)&me - (uintptr_t)tcb;
+	//assignme(tcb, &mainthread);
+	bmk_set_thread_lwp_me(bmk_current, &mainthread);
 	mainthread.rl_thread = bmk_sched_init_mainlwp(&mainthread);
 
-	TAILQ_INSERT_TAIL(&all_lwp, me, rl_entries);
+	TAILQ_INSERT_TAIL(&all_lwp, me(), rl_entries);
 }
 
 int
@@ -226,8 +236,8 @@ _lwp_park(clockid_t clock_id, int flags, const struct timespec *ts,
 	if (unpark)
 		_lwp_unpark(unpark, unparkhint);
 
-	if (me->rl_no_parking_hare) {
-		me->rl_no_parking_hare = 0;
+	if (me()->rl_no_parking_hare) {
+		me()->rl_no_parking_hare = 0;
 		return 0;
 	}
 
@@ -257,12 +267,13 @@ int
 _lwp_exit(void)
 {
 
-	me->rl_lwpctl.lc_curcpu = LWPCTL_CPU_EXITED;
+	me()->rl_lwpctl.lc_curcpu = LWPCTL_CPU_EXITED;
 	rump_pub_lwproc_releaselwp();
-	TAILQ_REMOVE(&all_lwp, me, rl_entries);
+	TAILQ_REMOVE(&all_lwp, me(), rl_entries);
 
 	/* could just assign it here, but for symmetry! */
-	assignme(bmk_sched_gettcb(), NULL);
+	//assignme(bmk_sched_gettcb(), NULL);
+	bmk_set_thread_lwp_me(bmk_current, NULL);
 
 	bmk_sched_exit_withtls();
 
@@ -323,7 +334,7 @@ lwpid_t
 _lwp_self(void)
 {
 
-	return me->rl_lwpid;
+	return me()->rl_lwpid;
 }
 
 /* XXX: messy.  see sched.h, libc, libpthread, and all over */
@@ -357,6 +368,16 @@ _lwp_getprivate(void)
 
 	return bmk_sched_gettcb();
 }
+
+
+struct tls_tcb * _lwp_get_tls_tcb(void);
+
+struct tls_tcb *
+_lwp_get_tls_tcb(void)
+{
+	return (struct tls_tcb *)bmk_sched_gettcb();
+}
+
 
 void _lwpnullop(void);
 void _lwpnullop(void) { }

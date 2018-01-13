@@ -39,6 +39,8 @@
 #include <bmk-core/string.h>
 #include <bmk-core/sched.h>
 
+#include <stddef.h>
+
 void *bmk_mainstackbase;
 unsigned long bmk_mainstacksize;
 
@@ -65,11 +67,16 @@ unsigned long bmk_mainstacksize;
 #define THR_DEAD	0x0200
 #define THR_BLOCKPREP	0x0400
 
+
+#define _TLS_I // no offset
+
+/*
 #if !(defined(__i386__) || defined(__x86_64__))
 #define _TLS_I
 #else
 #define _TLS_II
 #endif
+*/
 
 extern const char _tdata_start[], _tdata_end[];
 extern const char _tbss_start[], _tbss_end[];
@@ -84,6 +91,7 @@ extern const char _tbss_start[], _tbss_end[];
 #endif
 #define TLSAREASIZE (TMEMSIZE + BMK_TLS_EXTRA)
 
+
 struct bmk_thread {
 	char bt_name[NAME_MAXLEN];
 
@@ -96,13 +104,47 @@ struct bmk_thread {
 
 	void *bt_cookie;
 
+	/* for rumpuser_synch.c: __thread lwp */
+	struct lwp *bt_lwp;
+
+	/* for _lwp: __thread me */
+	struct rumprun_lwp *bt_lwp_me;
+
 	/* MD thread control block */
 	struct bmk_tcb bt_tcb;
 
 	TAILQ_ENTRY(bmk_thread) bt_schedq;
 	TAILQ_ENTRY(bmk_thread) bt_threadq;
 };
-__thread struct bmk_thread *bmk_current;
+//__thread struct bmk_thread *bmk_current;
+struct bmk_thread *bmk_current;
+
+struct lwp *bmk_get_current_lwp(void)
+{
+	return bmk_current->bt_lwp;
+}
+
+void bmk_set_current_lwp(struct lwp *lwp)
+{
+	bmk_current->bt_lwp = lwp;
+}
+
+struct rumprun_lwp *bmk_get_current_lwp_me(void)
+{
+	return bmk_current->bt_lwp_me;
+}
+
+
+void bmk_set_thread_lwp_me(struct bmk_thread *thread, struct rumprun_lwp *lwp)
+{
+	thread->bt_lwp_me = lwp;
+}
+
+struct bmk_thread *get_bmk_current(void) __attribute__ ((noinline));
+struct bmk_thread *get_bmk_current(void)
+{
+  return bmk_current;
+}
 
 TAILQ_HEAD(threadqueue, bmk_thread);
 static struct threadqueue threadq = TAILQ_HEAD_INITIALIZER(threadq);
@@ -296,6 +338,11 @@ sched_switch(struct bmk_thread *prev, struct bmk_thread *next)
 	if (scheduler_hook)
 		scheduler_hook(prev->bt_cookie, next->bt_cookie);
 	bmk_platform_cpu_sched_settls(&next->bt_tcb);
+
+	__asm__ __volatile__("" ::: "memory");
+	bmk_current = next; // XXX
+	__asm__ __volatile__("" ::: "memory");
+
 	bmk_cpu_sched_switch(&prev->bt_tcb, &next->bt_tcb);
 }
 
@@ -429,6 +476,7 @@ inittcb(struct bmk_tcb *tcb, void *tlsarea, unsigned long tlssize)
 	tcb->btcb_tpsize = tlssize;
 }
 
+/*
 static long bmk_curoff;
 static void
 initcurrent(void *tcb, struct bmk_thread *value)
@@ -437,6 +485,7 @@ initcurrent(void *tcb, struct bmk_thread *value)
 
 	*dst = value;
 }
+*/
 
 struct bmk_thread *
 bmk_sched_create_withtls(const char *name, void *cookie, int joinable,
@@ -466,8 +515,10 @@ bmk_sched_create_withtls(const char *name, void *cookie, int joinable,
 	thread->bt_cookie = cookie;
 	thread->bt_wakeup_time = BMK_SCHED_BLOCK_INFTIME;
 
+	//tlsarea = (void *)thread->bt_tcb.btcb_tp;
+	bmk_memcpy(tlsarea, (void *)&thread, sizeof(void *));
 	inittcb(&thread->bt_tcb, tlsarea, TCBOFFSET);
-	initcurrent(tlsarea, thread);
+	//initcurrent(tlsarea, thread);
 
 	TAILQ_INSERT_TAIL(&threadq, thread, bt_threadq);
 
@@ -485,11 +536,13 @@ bmk_sched_create(const char *name, void *cookie, int joinable,
 	void (*f)(void *), void *data,
 	void *stack_base, unsigned long stack_size)
 {
+	struct bmk_thread *thread;
 	void *tlsarea;
 
 	tlsarea = bmk_sched_tls_alloc();
-	return bmk_sched_create_withtls(name, cookie, joinable, f, data,
+	thread = bmk_sched_create_withtls(name, cookie, joinable, f, data,
 	    stack_base, stack_size, tlsarea);
+	return thread;
 }
 
 struct join_waiter {
@@ -656,26 +709,6 @@ bmk_sched_wake(struct bmk_thread *thread)
 void
 bmk_sched_init(void)
 {
-	unsigned long tlsinit;
-	struct bmk_tcb tcbinit;
-
-	inittcb(&tcbinit, &tlsinit, 0);
-	bmk_platform_cpu_sched_settls(&tcbinit);
-
-	/*
-	 * Not sure if the membars are necessary, but better to be
-	 * Marvin the Paranoid Paradroid than get eaten by 999
-	 */
-	__asm__ __volatile__("" ::: "memory");
-	bmk_curoff = (unsigned long)&bmk_current - (unsigned long)&tlsinit;
-	__asm__ __volatile__("" ::: "memory");
-
-	/*
-	 * Set TLS back to 0 so that it's easier to catch someone trying
-	 * to use it until we get TLS really initialized.
-	 */
-	tcbinit.btcb_tp = 0;
-	bmk_platform_cpu_sched_settls(&tcbinit);
 }
 
 void __attribute__((noreturn))

@@ -27,14 +27,21 @@
 
 #include <bmk-core/printf.h>
 #include <bmk-core/sched.h>
+#include <bmk-core/solo5.h>
+#include <bmk-core/string.h>
+
+//#define USE_FS_FOR_TLS 1
 
 void
 bmk_platform_cpu_sched_settls(struct bmk_tcb *next)
 {
-
+#ifdef USE_FS_FOR_TLS
 	__asm__ __volatile("wrmsr" ::
 		"c" (0xc0000100),
 		"a" ((uint32_t)(next->btcb_tp)),
 		"d" ((uint32_t)(next->btcb_tp >> 32))
 	);
+#else
+        //solo5_setfs(next->btcb_tp + 0xfffffffffffffff8);
+#endif
 }
