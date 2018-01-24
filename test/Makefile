@@ -1,7 +1,13 @@
-.PHONY: solo5
-solo5:
+.PHONY: ukvm
+ukvm:
 	x86_64-rumprun-netbsd-gcc -o helloer-rumprun helloer.c
-	rumprun-bake solo5_net helloer-rumprun.bin helloer-rumprun
+	rumprun-bake solo5_ukvm_net helloer-rumprun.bin helloer-rumprun
+
+.PHONY: ukvm_rr
+ukvm_rr:
+	x86_64-rumprun-netbsd-gcc -o helloer-rumprun helloer.c
+	rumprun-bake solo5_ukvm_rr_net helloer-rumprun.bin helloer-rumprun
+
 
 .PHONY: hw
 hw:
@@ -13,9 +19,14 @@ run_hw: hw
 	rumprun kvm -g '-nographic -vga none' -i helloer-rumprun.bin
 
 .PHONY: run_ukvm
-run_ukvm: solo5
+run_ukvm: ukvm
 	touch dummy
-	./ukvm-bin ./helloer-rumprun.bin
+	./ukvm-bin.vm ./helloer-rumprun.bin
+
+.PHONY: run_ukvm_rr
+run_ukvm_rr: ukvm_rr
+	touch dummy
+	./ukvm-bin.rr ./helloer-rumprun.bin
 
 .PHONY: clean
 clean:

@@ -2,10 +2,15 @@
 setup:
 	sudo bash setup-tests.sh
 
-.PHONY: solo5
-solo5: setup
+.PHONY: ukvm
+ukvm: setup
 	x86_64-rumprun-netbsd-gcc -o tcp-rumprun tcp.c
-	rumprun-bake solo5_net tcp-rumprun.bin tcp-rumprun
+	rumprun-bake solo5_ukvm_net tcp-rumprun.bin tcp-rumprun
+
+.PHONY: ukvm_rr
+ukvm_rr: setup
+	x86_64-rumprun-netbsd-gcc -o tcp-rumprun tcp.c
+	rumprun-bake solo5_ukvm_rr_net tcp-rumprun.bin tcp-rumprun
 
 .PHONY: hw
 hw:
@@ -20,9 +25,14 @@ run_hw: hw
 		-- tcp-rumprun.bin
 
 .PHONY: run_ukvm
-run_ukvm: solo5
+run_ukvm: ukvm
 	touch dummy
-	time ../ukvm-bin --disk=dummy --net=tap100 tcp-rumprun.bin '{"cmdline":"","net":{"if":"ukvmif0","cloner":"True","type":"inet","method":"static","addr":"10.0.0.2","mask":"16"}}' 
+	time ../ukvm-bin.vm --disk=dummy --net=tap100 tcp-rumprun.bin '{"cmdline":"","net":{"if":"ukvmif0","cloner":"True","type":"inet","method":"static","addr":"10.0.0.2","mask":"16"}}' 
+
+.PHONY: run_ukvm_rr
+run_ukvm_rr: ukvm_rr
+	touch dummy
+	time ../ukvm-bin.rr --disk=dummy --net=tap100 tcp-rumprun.bin '{"cmdline":"","net":{"if":"ukvmif0","cloner":"True","type":"inet","method":"static","addr":"10.0.0.2","mask":"16"}}' 
 
 .PHONY: clean
 clean:
