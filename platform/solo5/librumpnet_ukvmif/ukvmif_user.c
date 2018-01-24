@@ -105,7 +105,6 @@ VIFHYPER_RECEIVE(void)
 	struct iovec iov[1];
 	int len = PKT_BUFFER_LEN;
 
-	// XXX: not sure if the receiver will free this buffer
 	uint8_t *data = bmk_memalloc(PKT_BUFFER_LEN, 0, BMK_MEMWHO_RUMPKERN);
 	if (data == NULL) {
 		solo5_console_write("malloc fail\n",13);
@@ -115,6 +114,7 @@ VIFHYPER_RECEIVE(void)
 	// XXX shouldn't abort if error
 	if (solo5_net_read_sync(data, &len) != 0) {
 		solo5_console_write("receive fail\n",13);
+		bmk_memfree(data, BMK_MEMWHO_RUMPKERN);
 		solo5_exit();
 	}
 
@@ -122,6 +122,8 @@ VIFHYPER_RECEIVE(void)
 	iov[0].iov_len = len;
 
 	VIF_DELIVERPKT(iov, 1);
+
+	bmk_memfree(data, BMK_MEMWHO_RUMPKERN);
 }
 
 void
