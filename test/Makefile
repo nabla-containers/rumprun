@@ -1,39 +1,38 @@
-.PHONY: ukvm
-ukvm:
+helloer-rumprun.ukvm:
 	x86_64-rumprun-netbsd-gcc -o helloer-rumprun helloer.c
-	rumprun-bake solo5_ukvm_net helloer-rumprun.bin helloer-rumprun
+	rumprun-bake solo5_ukvm_net helloer-rumprun.ukvm helloer-rumprun
 
-.PHONY: ukvm_rr
 ukvm_rr:
 	x86_64-rumprun-netbsd-gcc -o helloer-rumprun helloer.c
 	rumprun-bake solo5_ukvm_rr_net helloer-rumprun.bin helloer-rumprun
 
+helloer-rumprun.seccomp:
+	x86_64-rumprun-netbsd-gcc -o helloer-rumprun helloer.c
+	rumprun-bake solo5_ukvm_seccomp helloer-rumprun.seccomp helloer-rumprun
 
-.PHONY: hw
-hw:
+helloer-rumprun.bin:
 	x86_64-rumprun-netbsd-gcc -o helloer-rumprun helloer.c
 	rumprun-bake hw_virtio helloer-rumprun.bin helloer-rumprun
 
-.PHONY: run_hw
-run_hw: hw
+run_hw: helloer-rumprun.bin
 	rumprun kvm -g '-nographic -vga none' -i helloer-rumprun.bin
 
-.PHONY: run_ukvm
-run_ukvm: ukvm
+run_ukvm: helloer-rumprun.ukvm
 	touch dummy
-	./ukvm-bin.vm ./helloer-rumprun.bin
+	./ukvm-bin.vm ./helloer-rumprun.ukvm
 
-.PHONY: run_ukvm_rr
+run_seccomp: helloer-rumprun.seccomp
+	touch dummy
+	./ukvm-bin.seccomp ./helloer-rumprun.seccomp
+
 run_ukvm_rr: ukvm_rr
 	touch dummy
 	./ukvm-bin.rr ./helloer-rumprun.bin
 
-.PHONY: run_gdb
 run_gdb: solo5
 	touch dummy
 	gdb -tui --ex="b ukvm_elf_load" --ex="r helloer-rumprun.bin > /dev/null" --ex="finish" --ex="add-symbol-file helloer-rumprun.bin 0x100000" ./ukvm-bin
 
 
-.PHONY: clean
 clean:
-	rm -f helloer-rumprun.bin helloer-rumprun dummy
+	rm -f helloer-rumprun.bin helloer-rumprun dummy helloer-rumprun.ukvm helloer-rumprun.seccomp

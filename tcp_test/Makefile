@@ -2,10 +2,13 @@
 setup:
 	sudo bash setup-tests.sh
 
-.PHONY: ukvm
-ukvm: setup
+tcp-rumprun.ukvm:
 	x86_64-rumprun-netbsd-gcc -o tcp-rumprun tcp.c
-	rumprun-bake solo5_ukvm_net tcp-rumprun.bin tcp-rumprun
+	rumprun-bake solo5_ukvm_net tcp-rumprun.ukvm tcp-rumprun
+
+tcp-rumprun.seccomp:
+	x86_64-rumprun-netbsd-gcc -o tcp-rumprun tcp.c
+	rumprun-bake solo5_ukvm_seccomp tcp-rumprun.seccomp tcp-rumprun
 
 .PHONY: ukvm_rr
 ukvm_rr: setup
@@ -25,9 +28,14 @@ run_hw: hw
 		-- tcp-rumprun.bin
 
 .PHONY: run_ukvm
-run_ukvm: ukvm
+run_ukvm: tcp-rumprun.ukvm
 	touch dummy
-	../ukvm-bin.vm --disk=dummy --net=tap100 tcp-rumprun.bin '{"cmdline":"","net":{"if":"ukvmif0","cloner":"True","type":"inet","method":"static","addr":"10.0.0.2","mask":"16"}}'
+	../ukvm-bin.vm --disk=dummy --net=tap100 tcp-rumprun.ukvm '{"cmdline":"","net":{"if":"ukvmif0","cloner":"True","type":"inet","method":"static","addr":"10.0.0.2","mask":"16"}}'
+
+.PHONY: run_seccomp
+run_seccomp: tcp-rumprun.seccomp
+	touch dummy
+	../ukvm-bin.seccomp --disk=dummy --net=tap100 tcp-rumprun.seccomp '{"cmdline":"","net":{"if":"ukvmif0","cloner":"True","type":"inet","method":"static","addr":"10.0.0.2","mask":"16"}}'
 
 .PHONY: run_ukvm_rr
 run_ukvm_rr: ukvm_rr
@@ -36,4 +44,4 @@ run_ukvm_rr: ukvm_rr
 
 .PHONY: clean
 clean:
-	rm -f tcp-rumprun.bin tcp-rumprun dummy
+	rm -f tcp-rumprun.bin tcp-rumprun dummy tcp-rumprun.ukvm tcp-rumprun.seccomp
