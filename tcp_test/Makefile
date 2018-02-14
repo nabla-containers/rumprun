@@ -27,12 +27,12 @@ run_hw: hw
 .PHONY: run_ukvm
 run_ukvm: ukvm
 	touch dummy
-	time ../ukvm-bin.vm --disk=dummy --net=tap100 tcp-rumprun.bin '{"cmdline":"","net":{"if":"ukvmif0","cloner":"True","type":"inet","method":"static","addr":"10.0.0.2","mask":"16"}}' 
+	../ukvm-bin.vm --disk=dummy --net=tap100 tcp-rumprun.bin '{"cmdline":"","net":{"if":"ukvmif0","cloner":"True","type":"inet","method":"static","addr":"10.0.0.2","mask":"16"}}'
 
 .PHONY: run_ukvm_rr
 run_ukvm_rr: ukvm_rr
 	touch dummy
-	time ../ukvm-bin.rr --disk=dummy --net=tap100 tcp-rumprun.bin '{"cmdline":"","net":{"if":"ukvmif0","cloner":"True","type":"inet","method":"static","addr":"10.0.0.2","mask":"16"}}' 
+	../ukvm-bin.rr --disk=dummy --net=tap100 tcp-rumprun.bin '{"cmdline":"","net":{"if":"ukvmif0","cloner":"True","type":"inet","method":"static","addr":"10.0.0.2","mask":"16"}}'
 
 .PHONY: clean
 clean:
