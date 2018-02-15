@@ -348,14 +348,24 @@ buildrump ()
 	checktools
 	checkprevbuilds
 
+	RR_USE_TLS=
+	TLSCFLAGS=
+	if [ "${RR_USE_TLS}" = "yes" ]; then
+		CURLWP_METHOD=__thread
+		TLSCFLAGS="-F CFLAGS=-DRR_USE_TLS"
+	else
+		CURLWP_METHOD=hypercall
+		TLSCFLAGS="-F CFLAGS=-D_PTHREAD_GETTCB_EXT=_lwp_get_tls_tcb"
+	fi
+
 	extracflags=
 	[ "${MACHINE_GNU_ARCH}" = "x86_64" ] \
-	    && extracflags='-F CFLAGS=-mno-red-zone -F CFLAGS=-D_PTHREAD_GETTCB_EXT=_lwp_get_tls_tcb'
+	    && extracflags="-F CFLAGS=-mno-red-zone ${TLSCFLAGS}"
 
 	# build tools
 	${BUILDRUMP}/buildrump.sh ${BUILD_QUIET} ${STDJ} -k		\
 	    -s ${RUMPSRC} -T ${RUMPTOOLS} -o ${BROBJ} -d ${STAGING}	\
-	    -V MKPIC=no -V RUMP_CURLWP=hypercall			\
+	    -V MKPIC=no -V RUMP_CURLWP=${CURLWP_METHOD}			\
 	    -V RUMP_KERNEL_IS_LIBC=1 -V BUILDRUMP_SYSROOT=yes		\
 	    ${extracflags} "$@" tools
 
