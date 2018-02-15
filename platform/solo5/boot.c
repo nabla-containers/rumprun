@@ -34,7 +34,7 @@
 #include <bmk-core/solo5.h>
 #include <bmk-core/pgalloc.h>
 
-#define HEAP_SIZE	(256e6) // 256 MBs hardcoded XXX
+#define HEAP_SIZE	(512e6) // 512 MBs hardcoded XXX
 
 int solo5_app_main(char *cmdline);
 
