@@ -1,5 +1,5 @@
 build:
-	CC=gcc ./build-rr.sh -j4 solo5
+	CC=gcc ./build-rr.sh -o obj -j4 solo5
 	cp solo5_master_62aa72a.o rumprun-solo5/rumprun-x86_64/lib/rumprun-solo5/libsolo5_ukvm.a
 	cp solo5_rr-kvm_f80011ab5.o rumprun-solo5/rumprun-x86_64/lib/rumprun-solo5/libsolo5_rr.a
 
