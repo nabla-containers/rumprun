@@ -29,9 +29,9 @@ run_ukvm_rr: ukvm_rr
 	touch dummy
 	./ukvm-bin.rr ./helloer-rumprun.bin
 
-run_gdb: solo5
+run_gdb: helloer-rumprun.seccomp
 	touch dummy
-	gdb -tui --ex="b ukvm_elf_load" --ex="r helloer-rumprun.bin > /dev/null" --ex="finish" --ex="add-symbol-file helloer-rumprun.bin 0x100000" ./ukvm-bin
+	gdb -tui --ex="b ukvm_elf_load" --ex="r helloer-rumprun.seccomp > /dev/null" --ex="finish" --ex="add-symbol-file helloer-rumprun.seccomp 0x100000" ./ukvm-bin.seccomp
 
 
 clean:
