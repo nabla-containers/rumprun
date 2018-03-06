@@ -27,7 +27,7 @@
 #include <hw/kernel.h>
 
 #include <bmk-core/printf.h>
-#include <bmk-core/solo5.h>
+#include <solo5.h>
 
 void
 cons_putc(int _c)

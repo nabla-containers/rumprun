@@ -27,7 +27,7 @@
 
 #include <bmk-core/platform.h>
 #include <bmk-core/printf.h>
-#include <bmk-core/solo5.h>
+#include <solo5.h>
 
 #include <net/if.h>
 
@@ -51,7 +51,7 @@ bmk_platform_halt(const char *panicstring)
 	if (panicstring)
 		bmk_printf("PANIC: %s\n", panicstring);
 	bmk_printf("halted\n");
-	solo5_exit();
+	solo5_exit(0);
 }
 
 void rumpcomp_ukvmif_receive(void);
@@ -59,7 +59,7 @@ void rumpcomp_ukvmif_receive(void);
 void
 bmk_platform_cpu_block(bmk_time_t until_ns)
 {
-	if (solo5_poll(until_ns)) {
+	if (solo5_yield(until_ns)) {
 		rumpcomp_ukvmif_receive();
 	}
 }

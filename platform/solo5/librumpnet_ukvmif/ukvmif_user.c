@@ -55,7 +55,7 @@
 
 #include "if_virt.h"
 #include "virtif_user.h"
-#include <bmk-core/solo5.h>
+#include <solo5.h>
 
 #if VIFHYPER_REVISION != 20140313
 #error VIFHYPER_REVISION mismatch
@@ -67,17 +67,12 @@ struct virtif_user {
 	struct virtif_sc *viu_virtifsc;
 };
 
+static struct solo5_net_info ni;
 int
 VIFHYPER_MAC(uint8_t **enaddr)
 {
-	char *enaddrstr;
-	struct ether_addr *e_addr;
-
-	enaddrstr = solo5_net_mac_str();
-	e_addr = ether_aton(enaddrstr);
-	if (e_addr == NULL)
-		return 1;
-	*enaddr = e_addr->ether_addr_octet;
+        solo5_net_info(&ni);
+	*enaddr = ni.mac_address;
 	return 0;
 }
 
@@ -90,7 +85,7 @@ VIFHYPER_CREATE(const char *devstr, struct virtif_sc *vif_sc, uint8_t *enaddr,
 	viu = bmk_memalloc(sizeof(*viu), 0, BMK_MEMWHO_RUMPKERN);
 	if (viu == NULL) {
 		solo5_console_write("create  fail\n",13);
-		solo5_exit();
+		solo5_exit(1);
 	}
 
 	viu->viu_virtifsc = vif_sc;
@@ -103,19 +98,19 @@ void
 VIFHYPER_RECEIVE(void)
 {
 	struct iovec iov[1];
-	int len = PKT_BUFFER_LEN;
+	unsigned long len = PKT_BUFFER_LEN;
 
 	uint8_t *data = bmk_memalloc(PKT_BUFFER_LEN, 0, BMK_MEMWHO_RUMPKERN);
 	if (data == NULL) {
 		solo5_console_write("malloc fail\n",13);
-		solo5_exit();
+		solo5_exit(1);
 	}
 
 	// XXX shouldn't abort if error
-	if (solo5_net_read_sync(data, &len) != 0) {
+	if (solo5_net_read(data, PKT_BUFFER_LEN, &len) != 0) {
 		solo5_console_write("receive fail\n",13);
 		bmk_memfree(data, BMK_MEMWHO_RUMPKERN);
-		solo5_exit();
+		solo5_exit(1);
 	}
 
 	iov[0].iov_base = data;
@@ -165,7 +160,7 @@ VIFHYPER_SEND(struct virtif_user *viu,
 	}
 
 	// XXX: check for error
-	solo5_net_write_sync(d, tlen);
+	solo5_net_write(d, tlen);
 
 	if (iovlen != 1)
 		bmk_memfree(d, BMK_MEMWHO_RUMPKERN);

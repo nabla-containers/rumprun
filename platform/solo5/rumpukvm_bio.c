@@ -35,7 +35,7 @@
 #define NBLKDEV 10
 #define BLKFDOFF 64
 
-#include <bmk-core/solo5.h>
+#include <solo5.h>
 
 #define XENBLK_MAGIC "XENBLK_"
 
@@ -59,6 +59,7 @@ devname2num(const char *name)
 int
 rumpuser_open(const char *name, int mode, int *fdp)
 {
+        struct solo5_block_info bi;
 	int num;
 
 	if (bmk_strncmp(name, XENBLK_MAGIC, sizeof(XENBLK_MAGIC)-1) != 0)
@@ -66,7 +67,8 @@ rumpuser_open(const char *name, int mode, int *fdp)
 	if ((mode & RUMPUSER_OPEN_BIO) == 0 || (num = devname2num(name)) == -1)
 		return BMK_ENXIO;
 
-	sector_size = solo5_blk_sector_size();
+        solo5_block_info(&bi);
+	sector_size = bi.block_size;
 	*fdp = BLKFDOFF + num;
 	return 0;
 }
@@ -80,6 +82,7 @@ rumpuser_close(int fd)
 int
 rumpuser_getfileinfo(const char *name, uint64_t *size, int *type)
 {
+        struct solo5_block_info bi;
 	int num;
 
 	if (bmk_strncmp(name, XENBLK_MAGIC, sizeof(XENBLK_MAGIC)-1) != 0)
@@ -87,7 +90,8 @@ rumpuser_getfileinfo(const char *name, uint64_t *size, int *type)
 	if ((num = devname2num(name)) == -1)
 		return BMK_ENXIO;
 
-        *size = solo5_blk_sectors() * sector_size;
+        solo5_block_info(&bi);
+        *size = bi.capacity;
 	*type = RUMPUSER_FT_BLK;
 
 	return 0;
@@ -102,9 +106,9 @@ rumpuser_bio(int fd, int op, void *data, size_t dlen, int64_t off,
 	int ret;
 
 	if (op & RUMPUSER_BIO_READ)
-		ret = solo5_blk_read_sync((uint64_t)off / sector_size, data, &len);
+		ret = solo5_block_read((uint64_t)off / sector_size, data, len);
 	else
-		ret = solo5_blk_write_sync((uint64_t)off / sector_size, data, len);
+		ret = solo5_block_write((uint64_t)off / sector_size, data, len);
 
 	if (ret == 0)
 		biodone(donearg, len, 0);

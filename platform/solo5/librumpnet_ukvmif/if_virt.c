@@ -71,8 +71,6 @@ static int  virtif_unclone(struct ifnet *);
 struct if_clone VIF_CLONER =
     IF_CLONE_INITIALIZER(VIF_NAME, virtif_clone, virtif_unclone);
 
-char *solo5_net_mac_str(void);
-void solo5_exit(void) __attribute__((noreturn));
 int atoi(const char *nptr);
 
 static int
