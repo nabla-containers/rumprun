@@ -106,9 +106,9 @@ rumpuser_bio(int fd, int op, void *data, size_t dlen, int64_t off,
 	int ret;
 
 	if (op & RUMPUSER_BIO_READ)
-		ret = solo5_block_read((uint64_t)off / sector_size, data, len);
+		ret = solo5_block_read((uint64_t)off, data, len);
 	else
-		ret = solo5_block_write((uint64_t)off / sector_size, data, len);
+		ret = solo5_block_write((uint64_t)off, data, len);
 
 	if (ret == 0)
 		biodone(donearg, len, 0);
