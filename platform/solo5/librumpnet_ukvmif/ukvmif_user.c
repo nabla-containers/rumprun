@@ -65,6 +65,8 @@
 
 struct virtif_user {
 	struct virtif_sc *viu_virtifsc;
+	struct bmk_thread *viu_rcvthr;
+	int viu_dying;
 };
 
 static struct solo5_net_info ni;
@@ -75,6 +77,49 @@ VIFHYPER_MAC(uint8_t **enaddr)
 	*enaddr = ni.mac_address;
 	return 0;
 }
+
+void
+do_receive(void);
+
+static void
+rcvthread(void *arg)
+{
+	struct virtif_user *viu = arg;
+
+	/* give us a rump kernel context */
+	rumpuser__hyp.hyp_schedule();
+	rumpuser__hyp.hyp_lwproc_newlwp(0);
+	rumpuser__hyp.hyp_unschedule();
+
+ again:
+	while (!viu->viu_dying) {
+		while (1) {
+			viu->viu_rcvthr = bmk_current;
+			bmk_sched_blockprepare();
+			bmk_sched_block();
+			viu->viu_rcvthr = NULL;
+			do_receive();
+			goto again;
+		}
+	}
+
+	solo5_console_write("bye from rcv\n",13);
+	assert(viu->viu_dying);
+}
+
+int
+VIFHYPER_DYING(struct virtif_user *viu)
+{
+
+	/* this may take a while to pick up
+	   should perhaps make process scheduled */
+	viu->viu_dying = 1;
+
+	return 0;
+}
+
+
+static struct virtif_user *_viu = NULL;
 
 int
 VIFHYPER_CREATE(const char *devstr, struct virtif_sc *vif_sc, uint8_t *enaddr,
@@ -90,12 +135,28 @@ VIFHYPER_CREATE(const char *devstr, struct virtif_sc *vif_sc, uint8_t *enaddr,
 
 	viu->viu_virtifsc = vif_sc;
 
+	viu->viu_rcvthr = bmk_sched_create("ukvmifp",
+	    NULL, 1, rcvthread, viu, NULL, 0);
+	if (! viu->viu_rcvthr) {
+		solo5_console_write("thread  fail\n",13);
+		solo5_exit(1);
+	}
+
 	*viup = viu;
+	_viu = viu;
 	return 0;
 }
 
 void
 VIFHYPER_RECEIVE(void)
+{
+	if (_viu->viu_rcvthr) {
+		bmk_sched_wake(_viu->viu_rcvthr);
+	}
+}
+
+void
+do_receive(void)
 {
 	struct iovec iov[1];
 	unsigned long len = PKT_BUFFER_LEN;
@@ -116,7 +177,9 @@ VIFHYPER_RECEIVE(void)
 	iov[0].iov_base = data;
 	iov[0].iov_len = len;
 
+	rumpuser__hyp.hyp_schedule();
 	VIF_DELIVERPKT(iov, 1);
+	rumpuser__hyp.hyp_unschedule();
 
 	bmk_memfree(data, BMK_MEMWHO_RUMPKERN);
 }

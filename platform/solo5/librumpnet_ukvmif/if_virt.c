@@ -376,11 +376,8 @@ VIF_DELIVERPKT(struct iovec *iov, size_t iovlen)
 	if (passup) {
 		ifp->if_ipackets++;
 		m_set_rcvif(m, ifp);
-		KERNEL_LOCK(1, NULL);
 		bpf_mtap(ifp, m);
-		if_input(ifp, m);
-		//ether_input(ifp, m);
-		KERNEL_UNLOCK_LAST(NULL);
+		ether_input(ifp, m);
 	} else {
 		m_freem(m);
 	}
