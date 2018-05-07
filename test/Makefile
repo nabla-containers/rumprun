@@ -35,11 +35,11 @@ run_ukvm_rr: ukvm_rr
 
 run_gdb: helloer-rumprun.seccomp
 	touch dummy
-	gdb -tui --ex="b ukvm_elf_load" --ex="r helloer-rumprun.seccomp > /dev/null" --ex="finish" --ex="add-symbol-file helloer-rumprun.seccomp 0x100000" ./ukvm-bin.seccomp
+	cgdb --ex="b ukvm_elf_load" --ex="r helloer-rumprun.seccomp > /dev/null" --ex="finish" --ex="add-symbol-file helloer-rumprun.seccomp 0x100000" ./ukvm-bin.seccomp
 
 run_gdb_timer: failing_timer.seccomp
 	touch dummy
-	gdb -tui --ex="b ukvm_elf_load" --ex="r failing_timer.seccomp > /dev/null" --ex="finish" --ex="add-symbol-file failing_timer.seccomp 0x100000" ./ukvm-bin.seccomp
+	cgdb --ex="b ukvm_elf_load" --ex="r failing_timer.seccomp" --ex="finish" --ex="add-symbol-file failing_timer.seccomp 0x100000" ./ukvm-bin.seccomp
 
 
 clean:
