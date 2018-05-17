@@ -93,14 +93,12 @@ rcvthread(void *arg)
 
  again:
 	while (!viu->viu_dying) {
-		while (1) {
-			viu->viu_rcvthr = bmk_current;
-			bmk_sched_blockprepare();
-			bmk_sched_block();
-			viu->viu_rcvthr = NULL;
-			do_receive();
-			goto again;
-		}
+		viu->viu_rcvthr = bmk_current;
+		bmk_sched_blockprepare_timeout(solo5_clock_monotonic() + 10);
+		bmk_sched_block();
+		viu->viu_rcvthr = NULL;
+		do_receive();
+		goto again;
 	}
 
 	solo5_console_write("bye from rcv\n",13);
@@ -155,23 +153,17 @@ VIFHYPER_RECEIVE(void)
 	}
 }
 
+char data[9000];
+
 void
 do_receive(void)
 {
 	struct iovec iov[1];
 	unsigned long len = PKT_BUFFER_LEN;
 
-	uint8_t *data = bmk_memalloc(PKT_BUFFER_LEN, 0, BMK_MEMWHO_RUMPKERN);
-	if (data == NULL) {
-		solo5_console_write("malloc fail\n",13);
-		solo5_exit(1);
-	}
-
 	// XXX shouldn't abort if error
 	if (solo5_net_read(data, PKT_BUFFER_LEN, &len) != 0) {
-		solo5_console_write("receive fail\n",13);
-		bmk_memfree(data, BMK_MEMWHO_RUMPKERN);
-		solo5_exit(1);
+		return;
 	}
 
 	iov[0].iov_base = data;
@@ -180,9 +172,9 @@ do_receive(void)
 	rumpuser__hyp.hyp_schedule();
 	VIF_DELIVERPKT(iov, 1);
 	rumpuser__hyp.hyp_unschedule();
-
-	bmk_memfree(data, BMK_MEMWHO_RUMPKERN);
 }
+
+char d[9000];
 
 void
 VIFHYPER_SEND(struct virtif_user *viu,
@@ -190,7 +182,6 @@ VIFHYPER_SEND(struct virtif_user *viu,
 {
 	size_t tlen, i;
 	int nlocks;
-	void *d;
 	char *d0;
 
 	rumpkern_unsched(&nlocks, NULL);
@@ -200,8 +191,9 @@ VIFHYPER_SEND(struct virtif_user *viu,
 	 * can't allocate temp memory space.
 	 */
 	if (iovlen == 1) {
-		d = iov->iov_base;
-		tlen = iov->iov_len;
+		solo5_net_write(iov->iov_base, iov->iov_len);
+		rumpkern_sched(nlocks, NULL);
+		return;
 	} else {
 		for (i = 0, tlen = 0; i < iovlen; i++) {
 			tlen += iov[i].iov_len;
@@ -212,9 +204,7 @@ VIFHYPER_SEND(struct virtif_user *viu,
 		 * since there are no huge repercussions if we fail or
 		 * succeed.
 		 */
-		d = d0 = bmk_memalloc(tlen, 0, BMK_MEMWHO_RUMPKERN);
-		if (d == NULL)
-			goto out;
+		d0 = (char *)d;
 
 		for (i = 0; i < iovlen; i++) {
 			bmk_memcpy(d0, iov[i].iov_base, iov[i].iov_len);
@@ -225,10 +215,6 @@ VIFHYPER_SEND(struct virtif_user *viu,
 	// XXX: check for error
 	solo5_net_write(d, tlen);
 
-	if (iovlen != 1)
-		bmk_memfree(d, BMK_MEMWHO_RUMPKERN);
-
-out:
 	rumpkern_sched(nlocks, NULL);
 	return;
 }
