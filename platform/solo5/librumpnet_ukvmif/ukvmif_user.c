@@ -78,7 +78,7 @@ VIFHYPER_MAC(uint8_t **enaddr)
 	return 0;
 }
 
-void
+int
 do_receive(void);
 
 static void
@@ -93,11 +93,12 @@ rcvthread(void *arg)
 
  again:
 	while (!viu->viu_dying) {
-		viu->viu_rcvthr = bmk_current;
-		bmk_sched_blockprepare_timeout(solo5_clock_monotonic() + 10);
-		bmk_sched_block();
-		viu->viu_rcvthr = NULL;
-		do_receive();
+		if (do_receive() != 0) {
+			viu->viu_rcvthr = bmk_current;
+			bmk_sched_blockprepare_timeout(solo5_clock_monotonic() + 100);
+			bmk_sched_block();
+			viu->viu_rcvthr = NULL;
+		}
 		goto again;
 	}
 
@@ -155,7 +156,7 @@ VIFHYPER_RECEIVE(void)
 
 char data[9000];
 
-void
+int
 do_receive(void)
 {
 	struct iovec iov[1];
@@ -163,7 +164,7 @@ do_receive(void)
 
 	// XXX shouldn't abort if error
 	if (solo5_net_read(data, PKT_BUFFER_LEN, &len) != 0) {
-		return;
+		return 1;
 	}
 
 	iov[0].iov_base = data;
@@ -172,6 +173,7 @@ do_receive(void)
 	rumpuser__hyp.hyp_schedule();
 	VIF_DELIVERPKT(iov, 1);
 	rumpuser__hyp.hyp_unschedule();
+	return 0;
 }
 
 char d[9000];

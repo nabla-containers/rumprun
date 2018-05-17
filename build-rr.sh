@@ -360,7 +360,7 @@ buildrump ()
 
 	extracflags=
 	[ "${MACHINE_GNU_ARCH}" = "x86_64" ] \
-	    && extracflags="-F CFLAGS=-mno-red-zone ${TLSCFLAGS} -F CFLAGS=-DHZ=8"
+	    && extracflags="-F CFLAGS=-mno-red-zone ${TLSCFLAGS} -F CFLAGS=-DHZ=100"
 
 	# build tools
 	${BUILDRUMP}/buildrump.sh ${BUILD_QUIET} ${STDJ} -k		\
