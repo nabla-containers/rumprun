@@ -85,6 +85,7 @@ static void
 rcvthread(void *arg)
 {
 	struct virtif_user *viu = arg;
+	uint64_t sleep_ns = 1e9/HZ;
 
 	/* give us a rump kernel context */
 	rumpuser__hyp.hyp_schedule();
@@ -95,7 +96,7 @@ rcvthread(void *arg)
 	while (!viu->viu_dying) {
 		if (do_receive() != 0) {
 			viu->viu_rcvthr = bmk_current;
-			bmk_sched_blockprepare_timeout(solo5_clock_monotonic() + 100);
+			bmk_sched_blockprepare_timeout(solo5_clock_monotonic() + sleep_ns);
 			bmk_sched_block();
 			viu->viu_rcvthr = NULL;
 		}
