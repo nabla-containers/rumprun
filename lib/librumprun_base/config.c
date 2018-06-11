@@ -270,6 +270,18 @@ handle_hostname(jsmntok_t *t, int left, char *data)
 	return 1;
 }
 
+static int
+handle_cwd(jsmntok_t *t, int left, char *data)
+{
+
+	T_CHECKTYPE(t, data, JSMN_STRING, __func__);
+
+	if (chdir(token2cstr(t, data)) == -1)
+		err(1, "chdir");
+
+	return 1;
+}
+
 static void
 config_ipv4(const char *ifname, const char *method,
 	const char *addr, const char *mask, const char *gw)
@@ -660,6 +672,7 @@ struct {
 	{ "hostname", handle_hostname },
 	{ "blk", handle_blk },
 	{ "net", handle_net },
+	{ "cwd", handle_cwd },
 };
 
 /* don't believe we can have a >64k config */
