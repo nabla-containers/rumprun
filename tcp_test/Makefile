@@ -30,12 +30,12 @@ run_hw: hw
 .PHONY: run_ukvm
 run_ukvm: tcp-rumprun.ukvm
 	touch dummy
-	../ukvm-bin.vm --disk=dummy --net=tap100 tcp-rumprun.ukvm '{"cmdline":"","net":{"if":"ukvmif0","cloner":"True","type":"inet","method":"static","addr":"10.0.0.2","mask":"16"}}'
+	../ukvm-bin.vm --disk=dummy --net=tap100 tcp-rumprun.ukvm '{"cmdline":"tcp 10.0.0.4","net":{"if":"ukvmif0","cloner":"True","type":"inet","method":"static","addr":"10.0.0.2","mask":"16"}}'
 
 .PHONY: run_seccomp
 run_seccomp: tcp-rumprun.seccomp
 	touch dummy
-	../ukvm-bin.seccomp --disk=dummy --net=tap100 tcp-rumprun.seccomp '{"cmdline":"","net":{"if":"ukvmif0","cloner":"True","type":"inet","method":"static","addr":"10.0.0.2","mask":"16"}}'
+	../ukvm-bin.seccomp --disk=dummy --net=tap100 tcp-rumprun.seccomp '{"cmdline":"tcp 10.0.0.4","net":{"if":"ukvmif0","cloner":"True","type":"inet","method":"static","addr":"10.0.0.2","mask":"16"}}'
 
 .PHONY: run_ukvm_rr
 run_ukvm_rr: ukvm_rr

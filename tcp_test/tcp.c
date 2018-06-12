@@ -18,7 +18,12 @@ int main(int argc , char *argv[])
 		printf("Could not create socket");
 	}
 		
-	server.sin_addr.s_addr = inet_addr("10.0.0.4");
+	if (argc != 2) {
+		puts("USAGE: ./tcp <SERVER_IP>");
+		return 1;
+	}
+
+	server.sin_addr.s_addr = inet_addr(argv[1]);
 	server.sin_family = AF_INET;
 	server.sin_port = htons( 5000 );
 
