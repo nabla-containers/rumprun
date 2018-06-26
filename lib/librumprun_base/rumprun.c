@@ -91,10 +91,6 @@ rumprun_boot(char *cmdline)
 	rump_boot_setsigmodel(RUMP_SIGMODEL_IGNORE);
 	rump_init();
 
-	/* mount /tmp before we let any userspace bits run */
-	rump_sys_mount(MOUNT_TMPFS, "/tmp", 0, &ta, sizeof(ta));
-	tmpfserrno = errno;
-
 	/*
 	 * XXX: _netbsd_userlevel_init() should technically be called
 	 * in mainbouncer() per process.  However, there's currently no way
@@ -108,13 +104,6 @@ rumprun_boot(char *cmdline)
 	rumprun_lwp_init();
 	_netbsd_userlevel_init();
 
-	/* print tmpfs result only after we bootstrapped userspace */
-	if (tmpfserrno == 0) {
-		fprintf(stderr, "mounted tmpfs on /tmp\n");
-	} else {
-		warnx("FAILED: mount tmpfs on /tmp: %s", strerror(tmpfserrno));
-	}
-
 	/*
 	 * We set duplicate address detection off for
 	 * immediately operational DHCP addresses.
@@ -125,6 +114,17 @@ rumprun_boot(char *cmdline)
 	sysctlbyname("net.inet.ip.dad_count", NULL, NULL, &x, sizeof(x));
 
 	rumprun_config(cmdline);
+
+	// We mount tmpfs after loading the cmdline arguments, as the user
+	// might have asked to mount / (which overwrites /tmp).
+	rump_sys_mount(MOUNT_TMPFS, "/tmp", 0, &ta, sizeof(ta));
+	tmpfserrno = errno;
+
+	if (tmpfserrno == 0) {
+		fprintf(stderr, "mounted tmpfs on /tmp\n");
+	} else {
+		warnx("FAILED: mount tmpfs on /tmp: %s", strerror(tmpfserrno));
+	}
 
 	sysproxy = getenv("RUMPRUN_SYSPROXY");
 	if (sysproxy) {
