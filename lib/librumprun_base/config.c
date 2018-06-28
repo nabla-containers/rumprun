@@ -524,12 +524,12 @@ mount_blk(const char *dev, const char *mp)
 	struct ufs_args mntargs_ufs = { .fspec = __UNCONST(dev) };
 	struct iso_args mntargs_iso = { .fspec = dev };
 
-	if (mount(MOUNT_FFS, mp, 0, &mntargs_ufs, sizeof(mntargs_ufs)) == 0)
+	if (mount(MOUNT_FFS, mp, MNT_UNION, &mntargs_ufs, sizeof(mntargs_ufs)) == 0)
 		return true;
-	if (mount(MOUNT_EXT2FS, mp, 0, &mntargs_ufs, sizeof(mntargs_ufs)) == 0)
+	if (mount(MOUNT_EXT2FS, mp, MNT_UNION, &mntargs_ufs, sizeof(mntargs_ufs)) == 0)
 		return true;
 	if (mount(MOUNT_CD9660,
-	    mp, MNT_RDONLY, &mntargs_iso, sizeof(mntargs_iso)) == 0)
+	    mp, MNT_RDONLY|MNT_UNION, &mntargs_iso, sizeof(mntargs_iso)) == 0)
 		return true;
 
 	return false;
