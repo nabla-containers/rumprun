@@ -150,7 +150,7 @@ VIFHYPER_CREATE(const char *devstr, struct virtif_sc *vif_sc, uint8_t *enaddr,
 void
 VIFHYPER_RECEIVE(void)
 {
-	if (_viu->viu_rcvthr) {
+	if (_viu && _viu->viu_rcvthr) {
 		bmk_sched_wake(_viu->viu_rcvthr);
 	}
 }
