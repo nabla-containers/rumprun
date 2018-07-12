@@ -14,6 +14,10 @@ helloer-rumprun.bin:
 	x86_64-rumprun-netbsd-gcc -o helloer-rumprun helloer.c
 	rumprun-bake hw_virtio helloer-rumprun.bin helloer-rumprun
 
+syscalltest-rumprun.seccomp:
+	x86_64-rumprun-netbsd-gcc -o syscalltest-rumprun syscalltest.c
+	rumprun-bake solo5_ukvm_seccomp syscalltest-rumprun.seccomp syscalltest-rumprun
+
 run_hw: helloer-rumprun.bin
 	rumprun kvm -g '-nographic -vga none' -i helloer-rumprun.bin
 
@@ -24,6 +28,9 @@ run_ukvm: helloer-rumprun.ukvm
 run_seccomp: helloer-rumprun.seccomp
 	touch dummy
 	./ukvm-bin.seccomp ./helloer-rumprun.seccomp
+
+run_syscalltest: syscalltest-rumprun.seccomp
+	./ukvm-bin.seccomp ./syscalltest-rumprun.seccomp
 
 failing_timer.seccomp: failing_timer.c
 	x86_64-rumprun-netbsd-gcc -o failing_timer failing_timer.c
@@ -43,4 +50,4 @@ run_gdb_timer: failing_timer.seccomp
 
 
 clean:
-	rm -f helloer-rumprun.bin helloer-rumprun dummy helloer-rumprun.ukvm helloer-rumprun.seccomp failing_timer.seccomp failing_timer.ukvm
+	rm -f helloer-rumprun.bin helloer-rumprun dummy helloer-rumprun.ukvm helloer-rumprun.seccomp failing_timer.seccomp failing_timer.ukvm syscalltest-rumprun.seccomp
