@@ -36,6 +36,7 @@
 
 #include <ufs/ufs/ufsmount.h>
 #include <isofs/cd9660/cd9660_mount.h>
+#include <ufs/lfs/lfs.h>
 
 #include <dev/vndvar.h>
 
@@ -523,13 +524,16 @@ mount_blk(const char *dev, const char *mp)
 {
 	struct ufs_args mntargs_ufs = { .fspec = __UNCONST(dev) };
 	struct iso_args mntargs_iso = { .fspec = dev };
+	struct ulfs_args mntargs_ulfs = { .fspec = __UNCONST(dev) };
 
-	if (mount(MOUNT_FFS, mp, MNT_UNION, &mntargs_ufs, sizeof(mntargs_ufs)) == 0)
-		return true;
-	if (mount(MOUNT_EXT2FS, mp, MNT_UNION, &mntargs_ufs, sizeof(mntargs_ufs)) == 0)
+	if (mount(MOUNT_LFS, mp, MNT_UNION, &mntargs_ulfs, sizeof(mntargs_ulfs)) == 0)
 		return true;
 	if (mount(MOUNT_CD9660,
 	    mp, MNT_RDONLY|MNT_UNION, &mntargs_iso, sizeof(mntargs_iso)) == 0)
+		return true;
+	if (mount(MOUNT_FFS, mp, MNT_UNION, &mntargs_ufs, sizeof(mntargs_ufs)) == 0)
+		return true;
+	if (mount(MOUNT_EXT2FS, mp, MNT_UNION, &mntargs_ufs, sizeof(mntargs_ufs)) == 0)
 		return true;
 
 	return false;

@@ -47,6 +47,12 @@ run_seccomp: blk-rumprun.seccomp test.iso test.ext2
 	../ukvm-bin.seccomp --disk=test.iso --net=tap100 blk-rumprun.seccomp '{"cmdline":"blk /test", "blk":{"source":"etfs","path":"/dev/ld0a","fstype":"blk","mountpoint":"/test"}}'
 	e2tail test.ext2:/bla
 
+.PHONY: run_seccomp_lfs
+run_seccomp_lfs: blk-rumprun.seccomp test.lfs
+	touch dummy
+	../ukvm-bin.seccomp --disk=test.lfs --net=tap100 blk-rumprun.seccomp '{"cmdline":"blk /test/aaaaaaaaaaaaaaax","blk":{"source":"etfs","path":"/dev/ld0a","fstype":"blk","mountpoint":"/test"}}'
+	../ukvm-bin.seccomp --disk=test.lfs --net=tap100 blk-rumprun.seccomp '{"cmdline":"blk /test", "blk":{"source":"etfs","path":"/dev/ld0a","fstype":"blk","mountpoint":"/test"}}'
+
 .PHONY: run_ukvm_rr
 run_ukvm_rr: ukvm_rr
 	touch dummy
