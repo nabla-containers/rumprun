@@ -113,6 +113,13 @@ rumprun_boot(char *cmdline)
 	x = 0;
 	sysctlbyname("net.inet.ip.dad_count", NULL, NULL, &x, sizeof(x));
 
+	x = 65535;
+	sysctlbyname("kern.maxfiles", NULL, NULL, &x, sizeof(x));
+	x = 65535;
+	sysctlbyname("proc.curproc.rlimit.descriptors.hard", NULL, NULL, &x, sizeof(x));
+	x = 65535;
+	sysctlbyname("proc.curproc.rlimit.descriptors.soft", NULL, NULL, &x, sizeof(x));
+
 	rumprun_config(cmdline);
 
 	/* XXX: moved this mounting here. It used to be before rump_init.
