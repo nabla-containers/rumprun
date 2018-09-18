@@ -27,6 +27,7 @@ int main(int argc , char *argv[])
 {
 	int i = 1;
 	int n;
+	int f;
 	char buf[80];
 
 	char cwd[1024];
@@ -37,7 +38,7 @@ int main(int argc , char *argv[])
 
 	list_dirs("/");
 
-	int f = open("/tmp/bla", O_CREAT|O_RDWR);
+	f = open("/tmp/bla", O_CREAT|O_RDWR);
 	assert(f != -1);
 	write(f, "123\n", 4);
 	lseek(f, 0, SEEK_SET);
@@ -47,6 +48,13 @@ int main(int argc , char *argv[])
 	close(f);
 
 	list_dirs("/tmp");
+	list_dirs("/dev");
+
+	f = open("/dev/urandom", O_RDONLY);
+	assert(f != -1);
+	n=read(f,buf,8);
+	write(1,buf,n);
+	close(f);
 
 	return 0;
 }
