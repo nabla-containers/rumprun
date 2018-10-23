@@ -1,6 +1,6 @@
 [submodule "buildrump.sh"]
 	path = buildrump.sh
-	url = https://github.com/rumpkernel/buildrump.sh
+	url = https://github.com/nabla-containers/buildrump.sh.git
 [submodule "src-netbsd"]
 	path = src-netbsd
 	url = https://github.com/rumpkernel/src-netbsd
