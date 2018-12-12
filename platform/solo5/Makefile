@@ -8,12 +8,11 @@ default: all
 # Check if we're building for a supported target.
 supported= false
 # assume we're doing "make clean"
-MACHINE?= amd64
-ifeq (${MACHINE},amd64)
+ifeq (${MACHINE},$(filter ${MACHINE},amd64 evbarm64-el))
 supported:= true
 endif
 ifneq (${supported},true)
-$(error only supported target is x86, you have ${MACHINE})
+$(error supported targets is are x86-64 and aarch64, you have ${MACHINE})
 endif
 
 ARCHDIR?= ${MACHINE}
@@ -30,6 +29,10 @@ include ../Makefile.inc
 include arch/${ARCHDIR}/Makefile.inc
 
 OBJS:=	$(patsubst %.c,${RROBJ}/platform/%.o,${SRCS})
+
+# Disable PIE, but need to check if compiler supports it
+LDFLAGS-$(call cc-option,-no-pie) += -no-pie
+LDFLAGS += $(LDFLAGS-y)
 
 .PHONY:	clean cleandir all
 
@@ -55,7 +58,7 @@ $(eval $(call BUILDLIB_target,librumpnet_ukvmif,.))
 solo5libs: ${RROBJLIB}/librumpnet_ukvmif/librumpnet_ukvmif.a
 
 ${MAINOBJ}: ${OBJS} platformlibs solo5libs
-	${CC} -nostdlib ${CFLAGS} -Wl,-r ${OBJS} -o $@ \
+	${CC} -nostdlib ${CFLAGS} ${LDFLAGS} -Wl,-r ${OBJS} -o $@ \
 	    -L${RROBJLIB}/libbmk_core -L${RROBJLIB}/libbmk_rumpuser \
 	    -Wl,--whole-archive -lbmk_rumpuser -lbmk_core -Wl,--no-whole-archive
 	#${OBJCOPY} -w -G bmk_* -G jsmn_* -G solo5_app_main -G _start $@

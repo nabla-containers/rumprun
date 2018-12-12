@@ -304,7 +304,7 @@ virtif_start(struct ifnet *ifp)
 		}
 		if (i == LB_SH && m)
 			panic("lazy bum");
-		bpf_mtap(ifp, m0);
+		bpf_mtap(ifp, m0, BPF_D_OUT);
 
 		VIFHYPER_SEND(sc->sc_viu, io, i);
 
@@ -376,7 +376,7 @@ VIF_DELIVERPKT(struct iovec *iov, size_t iovlen)
 	if (passup) {
 		ifp->if_ipackets++;
 		m_set_rcvif(m, ifp);
-		bpf_mtap(ifp, m);
+		bpf_mtap(ifp, m, BPF_D_OUT);
 		ether_input(ifp, m);
 	} else {
 		m_freem(m);
