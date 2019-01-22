@@ -103,15 +103,29 @@ rumpuser_bio(int fd, int op, void *data, size_t dlen, int64_t off,
 	rump_biodone_fn biodone, void *donearg)
 {
 	int len = (int)dlen;
-	int ret;
+	uint64_t curr_off;
+	uint64_t d = (uint64_t)data;
 
-	if (op & RUMPUSER_BIO_READ)
-		ret = solo5_block_read((uint64_t)off, data, len);
-	else
-		ret = solo5_block_write((uint64_t)off, data, len);
-
-	if (ret == 0)
-		biodone(donearg, len, 0);
-	else
+	if (len % sector_size != 0 || len == 0) {
 		biodone(donearg, 0, BMK_EIO);
+		return;
+	}
+
+	for (curr_off = off; len > 0; curr_off += sector_size,
+					len -= sector_size,
+					d += sector_size) {
+		int ret;
+		if (op & RUMPUSER_BIO_READ)
+			ret = solo5_block_read(curr_off,
+						(void *)d, sector_size);
+		else
+			ret = solo5_block_write(curr_off,
+						(void *)d, sector_size);
+		if (ret != 0) {
+			biodone(donearg, curr_off - off, BMK_EIO);
+			return;
+		}
+	}
+
+	biodone(donearg, dlen, 0);
 }
