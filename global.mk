@@ -17,6 +17,7 @@ CFLAGS+= -Werror
 endif
 
 LDFLAGS.x86_64.hw= -z max-page-size=0x1000
+LDFLAGS.x86_64.solo5= -z max-page-size=0x1000
 
 ifeq (${BUILDRR},true)
 INSTALLDIR=     ${RROBJ}/dest.stage
