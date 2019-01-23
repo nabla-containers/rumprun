@@ -13,11 +13,8 @@ before_script:
 env:
   - PLATFORM=hw MACHINE=x86_64 TESTS=qemu EXTRAFLAGS=
   - PLATFORM=hw MACHINE=i486 ELF=elf TESTS=qemu EXTRAFLAGS='-- -F ACLFLAGS=-m32 -F ACLFLAGS=-march=i686'
-  - PLATFORM=xen MACHINE=x86_64 TESTS=none EXTRAFLAGS=
-  - PLATFORM=xen MACHINE=i486 ELF=elf TESTS=none EXTRAFLAGS='-- -F ACLFLAGS=-m32'
   - PLATFORM=hw MACHINE=x86_64 TESTS=qemu EXTRAFLAGS= CXX='false'
   - PLATFORM=hw MACHINE=x86_64 TESTS=none KERNONLY=-k EXTRAFLAGS= 
-  - PLATFORM=xen MACHINE=x86_64 TESTS=none KERNONLY=-k EXTRAFLAGS=
 
 script:
   - git submodule update --init
@@ -25,5 +22,6 @@ script:
   - . ./myobj/config
   - ./tests/buildtests.sh ${KERNONLY}
   - ./tests/runtests.sh ${TESTS}
+
 
 # touch me to force a travis rebuild
