@@ -349,6 +349,23 @@ buildrump ()
 	checkprevbuilds
 
 	RR_USE_TLS=
+	FREQ_SETUP=
+	# Below are two customizations for solo5.
+	# 1. Solo5 does not support using segment based TLS (TLS
+	#    bases stored in %fs/%gs).
+	# 2. Increasing the clock rate frequency (from 10 to 100)
+	#    improves overall performance for network throughput
+	#    and web servers requests/sec. The reason why this is
+	#    important in solo5 and not qemu or xen is that solo5
+	#    only supports polling IO (it has no interrupts). So,
+	#    very frequent polling, done every clock tick, is good.
+	if [ "${PLATFORM}" == "solo5" ]; then
+		FREQ_SETUP="-F CFLAGS=-DHZ=100"
+		RR_USE_TLS="no"
+	else
+		RR_USE_TLS="yes"
+	fi
+
 	TLSCFLAGS=
 	if [ "${RR_USE_TLS}" = "yes" ]; then
 		CURLWP_METHOD=__thread
@@ -360,7 +377,8 @@ buildrump ()
 
 	extracflags=
 	[ "${MACHINE_GNU_ARCH}" = "x86_64" ] \
-	    && extracflags="-F CFLAGS=-mno-red-zone ${TLSCFLAGS} -F CFLAGS=-DHZ=100"
+	    && extracflags="-F CFLAGS=-mno-red-zone"
+	extracflags="${extracflags} ${TLSCFLAGS} ${FREQ_SETUP}"
 
 	# build tools
 	${BUILDRUMP}/buildrump.sh ${BUILD_QUIET} ${STDJ} -k		\
