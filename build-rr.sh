@@ -359,7 +359,7 @@ buildrump ()
 	#    important in solo5 and not qemu or xen is that solo5
 	#    only supports polling IO (it has no interrupts). So,
 	#    very frequent polling, done every clock tick, is good.
-	if [ "${PLATFORM}" == "solo5" ]; then
+	if [ "${PLATFORM}" = "solo5" ]; then
 		FREQ_SETUP="-F CFLAGS=-DHZ=100"
 		RR_USE_TLS="no"
 	else
