@@ -4,3 +4,6 @@
 [submodule "src-netbsd"]
 	path = src-netbsd
 	url = https://github.com/rumpkernel/src-netbsd
+[submodule "solo5"]
+	path = solo5
+	url = https://github.com/Solo5/solo5.git

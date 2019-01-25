@@ -57,6 +57,7 @@ helpme ()
 }
 
 BUILDRUMP=$(pwd)/buildrump.sh
+SOLO5SRC=$(pwd)/solo5
 
 # overriden by script if true
 HAVECXX=false
@@ -200,7 +201,8 @@ checksubmodules ()
 	# We assume that if the git submodule command fails, it's because
 	# we're using external $RUMPSRC.
 	if git submodule status ${RUMPSRC} 2>/dev/null | grep -q '^-' \
-	    || git submodule status ${BUILDRUMP} 2>/dev/null | grep -q '^-';
+	    || git submodule status ${BUILDRUMP} 2>/dev/null | grep -q '^-' \
+	        || git submodule status ${SOLO5SRC} 2>/dev/null | grep -q '^-';
 	then
 		echo '>>'
 		echo '>> submodules missing.  run "git submodule update --init"'
@@ -359,7 +361,7 @@ buildrump ()
 	#    important in solo5 and not qemu or xen is that solo5
 	#    only supports polling IO (it has no interrupts). So,
 	#    very frequent polling, done every clock tick, is good.
-	if [ "${PLATFORM}" == "solo5" ]; then
+	if [ "${PLATFORM}" = "solo5" ]; then
 		FREQ_SETUP="-F CFLAGS=-DHZ=100"
 		RR_USE_TLS="no"
 	else
@@ -476,6 +478,23 @@ buildpci ()
 	fi
 }
 
+installsolo5libs ()
+{
+
+	SPTLIB=${RRDEST}/rumprun-${MACHINE_GNU_ARCH}/lib/rumprun-${PLATFORM}/libsolo5_spt.a
+	HVTLIB=${RRDEST}/rumprun-${MACHINE_GNU_ARCH}/lib/rumprun-${PLATFORM}/libsolo5_hvt.a
+
+	# The reason for this very strange objcopy is that both solo5.o and
+	# rumprun's libc.a define a stack guard.
+	objcopy --redefine-sym __stack_chk_fail=__stack_chk_fail_solo5 \
+		--redefine-sym __stack_chk_guard=__stack_chk_guard_solo5 \
+		solo5/bindings/spt/solo5_spt.o ${SPTLIB}
+
+	objcopy --redefine-sym __stack_chk_fail=__stack_chk_fail_solo5 \
+		--redefine-sym __stack_chk_guard=__stack_chk_guard_solo5 \
+		solo5/bindings/hvt/solo5_hvt.o ${HVTLIB}
+}
+
 wraponetool ()
 {
 
@@ -504,6 +523,8 @@ makeconfig ()
 	echo "TOOLTUPLE=${quote}${TOOLTUPLE}${quote}" >> ${1}
 	echo "KERNONLY=${quote}${KERNONLY}${quote}" >> ${1}
 	echo "PLATFORM=${quote}${PLATFORM}${quote}" >> ${1}
+
+	[ "${PLATFORM}" = "solo5" ] && ( echo "SOLO5SRC=${quote}${SOLO5SRC}${quote}" >> ${1} )
 
 	echo "RRDEST=${quote}${RRDEST}${quote}" >> ${1}
 	echo "RROBJ=${quote}${RROBJ}${quote}" >> ${1}
@@ -542,6 +563,8 @@ dobuild ()
 	${KERNONLY} || builduserspace
 
 	buildpci
+
+	[ "${PLATFORM}" = "solo5" ] && make -C ${SOLO5SRC}
 
 	# do final build of the platform bits
 	( cd ${PLATFORMDIR} \
@@ -585,6 +608,8 @@ doinstall ()
 		find . -maxdepth 1 \! -path . \! -path ./include\* \
 		    | xargs tar -cf -
 	) | (cd ${RRDEST} ; tar -xf -)
+
+	[ "${PLATFORM}" = "solo5" ] && installsolo5libs
 
 	# copy include to destdir/include/rumprun
 	( cd ${STAGING}/include ; tar -cf - . ) \

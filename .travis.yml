@@ -1,4 +1,4 @@
-dist: trusty
+dist: xenial
 sudo: required
 language: c
 cache: ccache
@@ -7,10 +7,11 @@ compiler:
 
 before_script:
   - sudo apt-get update -y
-  - sudo apt-get install qemu-kvm libxen-dev -y
+  - sudo apt-get install qemu-kvm libxen-dev libseccomp-dev -y
   - sudo apt-get install --only-upgrade binutils gcc -y
 
 env:
+  - PLATFORM=solo5 MACHINE=x86_64 TESTS=spt EXTRAFLAGS=
   - PLATFORM=hw MACHINE=x86_64 TESTS=qemu EXTRAFLAGS=
   - PLATFORM=hw MACHINE=i486 ELF=elf TESTS=qemu EXTRAFLAGS='-- -F ACLFLAGS=-m32 -F ACLFLAGS=-march=i686'
   - PLATFORM=hw MACHINE=x86_64 TESTS=qemu EXTRAFLAGS= CXX='false'

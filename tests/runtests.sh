@@ -32,15 +32,22 @@ cd $(dirname $0) || die 'could not enter test dir'
 # we know, we knooooooow
 export RUMPRUN_WARNING_STFU=please
 
+# to get $PLATFORM
+. ${RUMPRUN_MKCONF}
 # TODO: use a more scalable way of specifying tests
 TESTS='hello/hello.bin basic/ctor_test.bin basic/pthread_test.bin
-	basic/tls_test.bin basic/misc_test.bin'
+	basic/misc_test.bin'
 [ -x hello/hellopp.bin ] && TESTS="${TESTS} hello/hellopp.bin"
+
+# Solo5 does not (currently) support __thread (segment based TLS)
+[ "$PLATFORM" != "solo5" ] && TESTS="${TESTS} basic/tls_test.bin"
 
 STARTMAGIC='=== FOE RUMPRUN 12345 TES-TER 54321 ==='
 ENDMAGIC='=== RUMPRUN 12345 TES-TER 54321 EOF ==='
 
 OPT_SUDO=
+
+SOLO5_SPT=${SOLO5SRC}/tenders/spt/solo5-spt
 
 die ()
 {
@@ -74,7 +81,11 @@ runguest ()
 	# img2=$3
 
 	[ -n "${img1}" ] || die runtest without a disk image
-	cookie=$(${RUMPRUN} ${OPT_SUDO} ${STACK} -b ${img1} ${testprog} __test)
+	if [ "${STACK}" = "spt" ]; then
+		cookie=$(${SOLO5_SPT} --disk=${img1} ${testprog} '{"cmdline":"testprog __test","blk":{"source":"etfs","path":"ld0d","fstype":"blk"}}')
+	else
+		cookie=$(${RUMPRUN} ${OPT_SUDO} ${STACK} -b ${img1} ${testprog} __test)
+	fi
 	if [ $? -ne 0 -o -z "${cookie}" ]; then
 		TEST_RESULT=ERROR
 		TEST_ECODE=-2
@@ -134,7 +145,7 @@ runtest ()
 	runtest tester disk.img
 }
 
-[ $# -ge 1 ] || die "usage: runtests.sh [-S] kvm|qemu|xen"
+[ $# -ge 1 ] || die "usage: runtests.sh [-S] kvm|qemu|xen|spt"
 
 if [ "$1" = '-S' ]; then
 	shift

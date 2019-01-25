@@ -46,6 +46,9 @@ test_apptools()
 	xen)
 		RUMPBAKE_PLATFORM='xen_pv'
 		;;
+	solo5)
+		RUMPBAKE_PLATFORM='solo5_spt'
+		;;
 	*)
 		echo ">> unknown platform \"$PLATFORM\""
 		exit 1
