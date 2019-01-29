@@ -374,7 +374,7 @@ buildrump ()
 		TLSCFLAGS="-F CFLAGS=-DRR_USE_TLS"
 	else
 		CURLWP_METHOD=hypercall
-		TLSCFLAGS="-F CFLAGS=-D_PTHREAD_GETTCB_EXT=_lwp_get_tls_tcb"
+		TLSCFLAGS="-F CFLAGS=-D_PTHREAD_GETTCB_EXT=_lwp_get_tls_tcb -F CFLAGS=-fno-stack-protector"
 	fi
 
 	extracflags=
