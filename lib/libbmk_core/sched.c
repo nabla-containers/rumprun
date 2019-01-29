@@ -339,9 +339,9 @@ sched_switch(struct bmk_thread *prev, struct bmk_thread *next)
 
 	if (scheduler_hook)
 		scheduler_hook(prev->bt_cookie, next->bt_cookie);
+#ifdef RR_USE_TLS
 	bmk_platform_cpu_sched_settls(&next->bt_tcb);
-
-#ifndef RR_USE_TLS
+#else
         // Just in case. Let's add a compiler mem barrier
 	__asm__ __volatile__("" ::: "memory");
 	bmk_current = next;

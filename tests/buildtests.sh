@@ -12,14 +12,18 @@ set -e
 TESTMODE=apptools
 TESTCONFIGURE=true
 TESTCMAKE=$(which cmake || echo "")
+RUMPBAKE_PLATFORM=
 
-while getopts 'kqh' opt; do
+while getopts 'kqhp:' opt; do
 	case "$opt" in
 	'k')
 		TESTMODE=kernonly
 		;;
 	'q')
 		TESTCONFIGURE=false
+		;;
+	'p')
+		RUMPBAKE_PLATFORM="${OPTARG}"
 		;;
 	'h'|'?')
 		echo "$0 [-k|-q]"
@@ -39,20 +43,22 @@ cd "$(dirname $0)"
 test_apptools()
 {
 
-	case ${PLATFORM} in
-	hw)
-		RUMPBAKE_PLATFORM='hw_generic'
-		;;
-	xen)
-		RUMPBAKE_PLATFORM='xen_pv'
-		;;
-	solo5)
-		RUMPBAKE_PLATFORM='solo5_spt'
-		;;
-	*)
-		echo ">> unknown platform \"$PLATFORM\""
-		exit 1
-	esac
+	if [ -z "$RUMPBAKE_PLATFORM" ]; then
+		case ${PLATFORM} in
+		hw)
+			RUMPBAKE_PLATFORM='hw_generic'
+			;;
+		xen)
+			RUMPBAKE_PLATFORM='xen_pv'
+			;;
+		solo5)
+			RUMPBAKE_PLATFORM='solo5_spt'
+			;;
+		*)
+			echo ">> unknown platform \"$PLATFORM\""
+			exit 1
+		esac
+	fi
 
 	export PATH="${RRDEST}/bin:${PATH}"
 	export RUMPBAKE_PLATFORM

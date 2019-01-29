@@ -47,7 +47,10 @@ ENDMAGIC='=== RUMPRUN 12345 TES-TER 54321 EOF ==='
 
 OPT_SUDO=
 
+# SPT is built with all modules
 SOLO5_SPT=${SOLO5SRC}/tenders/spt/solo5-spt
+# We need an HVT binary built with just the blk module
+SOLO5_HVT=${SOLO5SRC}/tests/test_blk/solo5-hvt
 
 die ()
 {
@@ -81,11 +84,18 @@ runguest ()
 	# img2=$3
 
 	[ -n "${img1}" ] || die runtest without a disk image
-	if [ "${STACK}" = "spt" ]; then
+	case "${STACK}" in
+	spt)
 		cookie=$(${SOLO5_SPT} --disk=${img1} ${testprog} '{"cmdline":"testprog __test","blk":{"source":"etfs","path":"ld0d","fstype":"blk"}}')
-	else
+		;;
+	hvt)
+		cookie=$(${SOLO5_HVT} --disk=${img1} ${testprog} '{"cmdline":"testprog __test","blk":{"source":"etfs","path":"ld0d","fstype":"blk"}}')
+		;;
+	*)
 		cookie=$(${RUMPRUN} ${OPT_SUDO} ${STACK} -b ${img1} ${testprog} __test)
-	fi
+		;;
+	esac
+
 	if [ $? -ne 0 -o -z "${cookie}" ]; then
 		TEST_RESULT=ERROR
 		TEST_ECODE=-2
