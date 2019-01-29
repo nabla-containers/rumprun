@@ -27,6 +27,7 @@
 
 #include <bmk-core/printf.h>
 #include <bmk-core/sched.h>
+#include <assert.h>
 
 void
 bmk_platform_cpu_sched_settls(struct bmk_tcb *next)
@@ -38,5 +39,7 @@ bmk_platform_cpu_sched_settls(struct bmk_tcb *next)
 		"a" ((uint32_t)(next->btcb_tp)),
 		"d" ((uint32_t)(next->btcb_tp >> 32))
 	);
+#else
+	assert(0); /* Should not get here */
 #endif
 }
