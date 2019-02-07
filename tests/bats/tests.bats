@@ -28,10 +28,6 @@ setup() {
   . ${RUMPRUN_MKCONF}
   SOLO5_SPT=${SOLO5SRC}/tenders/spt/solo5-spt
   SOLO5_HVT=${SOLO5SRC}/tenders/hvt/solo5-hvt
-
-  run ip tuntap add ${NET} mode tap
-  run ip addr add 10.0.0.1/24 dev ${NET}
-  run ip link set dev ${NET} up
 }
 
 @test "cwd spt" {
@@ -101,7 +97,18 @@ function create_tree() {
   skip "not implemented"
 }
 
+function create_tap() {
+  run ip link show tap100
+  if [ "$status" -ne 0 ]; then
+    [ $(id -u) -ne 0 ] && skip "need root to create a tap"
+    run ip tuntap add ${NET} mode tap
+    run ip addr add 10.0.0.1/24 dev ${NET}
+    ip link set dev ${NET} up
+  fi
+}
+
 @test "tcp server spt" {
+  create_tap
   (
     ${TIMEOUT} 30s ${SOLO5_SPT} --net=${NET} test_tcp_server.bin '{"cmd":"test_tcp_server","net":{"if":"ukvmif0","cloner":"True","type":"inet","method":"static","addr":"10.0.0.2","mask":"16"}}'
   ) &
@@ -113,7 +120,9 @@ function create_tree() {
   [[ "$output" == *"nabla"* ]]
 }
 
+
 @test "tcp server hvt" {
+  create_tap
   (
     touch dummy
     ${TIMEOUT} 30s ${SOLO5_HVT} --disk=dummy --net=${NET} test_tcp_server.bin '{"cmd":"test_tcp_server","net":{"if":"ukvmif0","cloner":"True","type":"inet","method":"static","addr":"10.0.0.2","mask":"16"}}'
