@@ -127,14 +127,11 @@ function create_tap() {
     ${TIMEOUT} 30s ${SOLO5_SPT} --net=${NET} tcp_server_test.bin '{"cmd":"test_tcp_server","net":{"if":"ukvmif0","cloner":"True","type":"inet","method":"static","addr":"10.0.0.2","mask":"16"}}'
   ) &
 
-  sleep 1
-
-  run curl 10.0.0.2:5000
+  run wget --retry-connrefused --tries=5 --waitretry=1 -q -O - 10.0.0.2:5000
   echo "$output"
   [ "$status" -eq 0 ]
   [[ "$output" == *"nabla"* ]]
 }
-
 
 @test "tcp server hvt" {
   create_tap
@@ -143,9 +140,7 @@ function create_tap() {
     ${TIMEOUT} 30s ${SOLO5_HVT} --disk=dummy --net=${NET} tcp_server_test.bin '{"cmd":"test_tcp_server","net":{"if":"ukvmif0","cloner":"True","type":"inet","method":"static","addr":"10.0.0.2","mask":"16"}}'
   ) &
 
-  sleep 1
-
-  run curl 10.0.0.2:5000
+  run wget --retry-connrefused --tries=5 --waitretry=1 -q -O - 10.0.0.2:5000
   echo "$output"
   [ "$status" -eq 0 ]
   [[ "$output" == *"nabla"* ]]
