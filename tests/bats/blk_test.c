@@ -4,6 +4,10 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <dirent.h>
+#include <string.h>
+#include <unistd.h>
+
+int list_dirs(char *path);
 
 int list_dirs(char *path)
 {
@@ -23,7 +27,7 @@ int list_dirs(char *path)
 
 int main(int argc , char *argv[])
 {
-	int l, n;
+	int n;
 	char buf[80];
 	int f;
 	char name[256];

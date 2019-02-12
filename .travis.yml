@@ -7,7 +7,7 @@ compiler:
 
 before_script:
   - sudo apt-get update -y
-  - sudo apt-get install qemu-kvm libxen-dev libseccomp-dev -y
+  - sudo apt-get install qemu-kvm libxen-dev libseccomp-dev bats genisoimage sudo iproute2 wget -y
   - sudo apt-get install --only-upgrade binutils gcc -y
 
 env:
@@ -23,6 +23,8 @@ script:
   - . ./myobj/config
   - ./tests/buildtests.sh ${KERNONLY}
   - ./tests/runtests.sh ${TESTS}
+  - sudo RUMPRUN_MKCONF=${RUMPRUN_MKCONF} STACK=${TESTS} bats ./tests/bats/tests.bats
 
+# The sudo above is because there is a test that needs to create a TAP device
 
 # touch me to force a travis rebuild
