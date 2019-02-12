@@ -27,6 +27,7 @@ setup() {
     ;;
   *)
     skip "Usage: STACK=[hvt|spt|qemu] bats tests.bats"
+    ;;
   esac
 
   NET=tap100
@@ -124,6 +125,7 @@ function create_tap() {
   sleep 1
 
   run curl 10.0.0.2:5000
+  echo "$output"
   [ "$status" -eq 0 ]
   [[ "$output" == *"nabla"* ]]
 }
@@ -139,6 +141,7 @@ function create_tap() {
   sleep 1
 
   run curl 10.0.0.2:5000
+  echo "$output"
   [ "$status" -eq 0 ]
   [[ "$output" == *"nabla"* ]]
 }
