@@ -7,7 +7,7 @@ compiler:
 
 before_script:
   - sudo apt-get update -y
-  - sudo apt-get install qemu-kvm libxen-dev libseccomp-dev bats genisoimage -y
+  - sudo apt-get install qemu-kvm libxen-dev libseccomp-dev bats genisoimage sudo iproute2 -y
   - sudo apt-get install --only-upgrade binutils gcc -y
 
 env:
