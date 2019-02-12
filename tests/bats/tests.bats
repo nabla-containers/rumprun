@@ -18,23 +18,26 @@ setup() {
   case "${BATS_TEST_NAME}" in
   *hvt)
     [ "${STACK}" != "hvt" ] && skip "hvt not built"
+    [ -n "${RUMPRUN_MKCONF}" ] || skip "need RUMPRUN_MKCONF set in env (run 'source [RUMPRUN]/obj/config')"
+    . ${RUMPRUN_MKCONF}
+    SOLO5_HVT=${SOLO5SRC}/tenders/hvt/solo5-hvt
     ;;
   *spt)
     [ "${STACK}" != "spt" ] && skip "spt not built"
+    [ -n "${RUMPRUN_MKCONF}" ] || skip "need RUMPRUN_MKCONF set in env (run 'source [RUMPRUN]/obj/config')"
+    . ${RUMPRUN_MKCONF}
+    SOLO5_SPT=${SOLO5SRC}/tenders/spt/solo5-spt
     ;;
   *hw)
     [ "${STACK}" != "qemu" ] && skip "hw not built"
+    [ -n "${RUMPRUN}" ] || skip "need RUMPRUN set in env (run 'source [RUMPRUN]/obj/config')"
     ;;
   *)
-    skip "Usage: STACK=[hvt|spt|qemu] bats tests.bats"
+    skip "need STACK set in env"
     ;;
   esac
 
   NET=tap100
-
-  . ${RUMPRUN_MKCONF}
-  SOLO5_SPT=${SOLO5SRC}/tenders/spt/solo5-spt
-  SOLO5_HVT=${SOLO5SRC}/tenders/hvt/solo5-hvt
 }
 
 @test "cwd spt" {
@@ -74,8 +77,9 @@ function create_tree() {
 @test "blk spt" {
   create_tree
   rm -f test.iso
-  genisoimage -U -J -f -joliet-long -r -allow-lowercase -allow-multidot -o test.iso test_dir
+  run genisoimage -U -J -f -joliet-long -r -allow-lowercase -allow-multidot -o test.iso test_dir
   run ${TIMEOUT} --foreground 30s ${SOLO5_SPT} --disk=test.iso blk_test.bin '{"cmdline":"blk /test","blk":{"source":"etfs","path":"/dev/ld0a","fstype":"blk","mountpoint":"/test"}}'
+  echo "$output"
   [ "$status" -eq 0 ]
   [[ "$output" == *"."* ]]
   [[ "$output" == *".."* ]]
@@ -90,8 +94,9 @@ function create_tree() {
   create_tree
   create_tap
   rm -f test.iso
-  genisoimage -U -J -f -joliet-long -r -allow-lowercase -allow-multidot -o test.iso test_dir
+  run genisoimage -U -J -f -joliet-long -r -allow-lowercase -allow-multidot -o test.iso test_dir
   run ${TIMEOUT} --foreground 30s ${SOLO5_HVT} --disk=test.iso --net=${NET} blk_test.bin '{"cmdline":"blk /test","blk":{"source":"etfs","path":"/dev/ld0a","fstype":"blk","mountpoint":"/test"}}'
+  echo "$output"
   [ "$status" -eq 0 ]
   [[ "$output" == *"."* ]]
   [[ "$output" == *".."* ]]
@@ -151,7 +156,7 @@ function create_tap() {
 }
 
 @test "file rename spt" {
-  skip "Not working in rumprun (see issue XXX)"
+  skip "Not working in rumprun"
   dd if=/dev/zero of=data.ext2 count=1024 bs=1024
   mkfs.ext2 data.ext2
   run ${TIMEOUT} 30s ${SOLO5_SPT} --disk=data.ext2 file_rename_test.bin '{"cmdline":"test_rename /test","blk":{"source":"etfs","path":"/dev/ld0a","fstype":"blk","mountpoint":"/test"}}'
@@ -161,12 +166,16 @@ function create_tap() {
 }
 
 @test "file rename hvt" {
-  skip "Not working in rumprun (see issue XXX)"
+  skip "Not working in rumprun"
   create_tap
   dd if=/dev/zero of=data.ext2 count=1024 bs=1024
   mkfs.ext2 data.ext2
-  run ${TIMEOUT} 30s ${SOLO5_HVT} --disk=data.ext2 --net=${NET} file_rename_test.bin '{"cmdline":"test_rename /test","blk":{"source":"etfs","path":"/dev/ld0a","fstype":"blk","mountpoint"}}'
+  run ${TIMEOUT} 30s ${SOLO5_HVT} --disk=data.ext2 --net=${NET} file_rename_test.bin '{"cmdline":"test_rename /test","blk":{"source":"etfs","path":"/dev/ld0a","fstype":"blk","mountpoint":"/test"}}'
   echo "$output"
   [ "$status" -eq 0 ]
   [[ "$output" == *"=== main() of \"test_rename\" returned 0 ==="* ]]
+}
+
+@test "file rename hw" {
+  skip "not implemented"
 }
