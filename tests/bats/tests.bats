@@ -11,6 +11,10 @@ setup() {
     skip "timeout(gtimeout) is required"
   fi
 
+  if [ -z "${STACK}" ]; then
+    skip "Usage: STACK=[hvt|spt|qemu] bats tests.bats"
+  fi
+
   case "${BATS_TEST_NAME}" in
   *hvt)
     [ "${STACK}" != "hvt" ] && skip "hvt not built"
@@ -21,6 +25,8 @@ setup() {
   *hw)
     [ "${STACK}" != "qemu" ] && skip "hw not built"
     ;;
+  *)
+    skip "Usage: STACK=[hvt|spt|qemu] bats tests.bats"
   esac
 
   NET=tap100
@@ -38,6 +44,7 @@ setup() {
 
 @test "cwd hvt" {
   touch dummy
+  create_tap
   run ${TIMEOUT} --foreground 30s ${SOLO5_HVT} --disk=dummy --net=${NET} cwd_test.bin '{"cmdline":"cwd_test /etc","cwd":"/etc"}'
   [ "$status" -eq 0 ]
   [[ "$output" == *"=== main() of \"cwd_test\" returned 0 ==="* ]]
@@ -80,6 +87,7 @@ function create_tree() {
 
 @test "blk hvt" {
   create_tree
+  create_tap
   rm -f test.iso
   genisoimage -U -J -f -joliet-long -r -allow-lowercase -allow-multidot -o test.iso test_dir
   run ${TIMEOUT} --foreground 30s ${SOLO5_HVT} --disk=test.iso --net=${NET} blk_test.bin '{"cmdline":"blk /test","blk":{"source":"etfs","path":"/dev/ld0a","fstype":"blk","mountpoint":"/test"}}'
@@ -110,7 +118,7 @@ function create_tap() {
 @test "tcp server spt" {
   create_tap
   (
-    ${TIMEOUT} 30s ${SOLO5_SPT} --net=${NET} test_tcp_server.bin '{"cmd":"test_tcp_server","net":{"if":"ukvmif0","cloner":"True","type":"inet","method":"static","addr":"10.0.0.2","mask":"16"}}'
+    ${TIMEOUT} 30s ${SOLO5_SPT} --net=${NET} tcp_server_test.bin '{"cmd":"test_tcp_server","net":{"if":"ukvmif0","cloner":"True","type":"inet","method":"static","addr":"10.0.0.2","mask":"16"}}'
   ) &
 
   sleep 1
@@ -125,7 +133,7 @@ function create_tap() {
   create_tap
   (
     touch dummy
-    ${TIMEOUT} 30s ${SOLO5_HVT} --disk=dummy --net=${NET} test_tcp_server.bin '{"cmd":"test_tcp_server","net":{"if":"ukvmif0","cloner":"True","type":"inet","method":"static","addr":"10.0.0.2","mask":"16"}}'
+    ${TIMEOUT} 30s ${SOLO5_HVT} --disk=dummy --net=${NET} tcp_server_test.bin '{"cmd":"test_tcp_server","net":{"if":"ukvmif0","cloner":"True","type":"inet","method":"static","addr":"10.0.0.2","mask":"16"}}'
   ) &
 
   sleep 1
@@ -137,4 +145,25 @@ function create_tap() {
 
 @test "tcp server hw" {
   skip "not implemented"
+}
+
+@test "file rename spt" {
+  skip "Not working in rumprun (see issue XXX)"
+  dd if=/dev/zero of=data.ext2 count=1024 bs=1024
+  mkfs.ext2 data.ext2
+  run ${TIMEOUT} 30s ${SOLO5_SPT} --disk=data.ext2 file_rename_test.bin '{"cmdline":"test_rename /test","blk":{"source":"etfs","path":"/dev/ld0a","fstype":"blk","mountpoint":"/test"}}'
+  echo "$output"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"=== main() of \"test_rename\" returned 0 ==="* ]]
+}
+
+@test "file rename hvt" {
+  skip "Not working in rumprun (see issue XXX)"
+  create_tap
+  dd if=/dev/zero of=data.ext2 count=1024 bs=1024
+  mkfs.ext2 data.ext2
+  run ${TIMEOUT} 30s ${SOLO5_HVT} --disk=data.ext2 --net=${NET} file_rename_test.bin '{"cmdline":"test_rename /test","blk":{"source":"etfs","path":"/dev/ld0a","fstype":"blk","mountpoint"}}'
+  echo "$output"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"=== main() of \"test_rename\" returned 0 ==="* ]]
 }
