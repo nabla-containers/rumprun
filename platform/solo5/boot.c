@@ -30,9 +30,19 @@
 #include <bmk-core/mainthread.h>
 #include <bmk-core/sched.h>
 #include <bmk-core/printf.h>
+#include <bmk-core/string.h>
 
 #include <solo5.h>
 #include <bmk-core/pgalloc.h>
+
+/*
+ * This comes from solo5/include/spt_abi.h and solo5/include/hvt_abi.h.
+ *
+ * XXX: It would be better to get it directly from those header files.
+ */
+#define SOLO5_CMDLINE_SIZE 8192
+
+static char solo5_cmdline[SOLO5_CMDLINE_SIZE];
 
 int solo5_app_main(const struct solo5_start_info *si)
 {
@@ -50,7 +60,8 @@ int solo5_app_main(const struct solo5_start_info *si)
 	bmk_pgalloc_loadmem(heap_aligned, heap_aligned + si->heap_size);
         bmk_memsize = heap_aligned + si->heap_size - heap_aligned;
 
-	bmk_sched_startmain(bmk_mainthread, (void *)si->cmdline);
+	bmk_strncpy(solo5_cmdline, si->cmdline, SOLO5_CMDLINE_SIZE);
+	bmk_sched_startmain(bmk_mainthread, (void *)solo5_cmdline);
 
 	/* not reachable */
 	solo5_exit(0);
