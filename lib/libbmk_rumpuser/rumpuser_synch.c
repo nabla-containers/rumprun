@@ -111,7 +111,6 @@ rumpuser_thread_create(void *(*f)(void *), void *arg, const char *thrname,
 void
 rumpuser_thread_exit(void)
 {
-
 	bmk_sched_exit();
 }
 
@@ -209,6 +208,12 @@ rumpuser_mutex_owner(struct rumpuser_mtx *mtx, struct lwp **lp)
 {
 
 	*lp = mtx->o;
+}
+
+int
+rumpuser_mutex_spin_p(struct rumpuser_mtx *mtx)
+{
+	return (mtx->flags & RUMPUSER_MTX_SPIN) != 0;
 }
 
 struct rumpuser_rw {

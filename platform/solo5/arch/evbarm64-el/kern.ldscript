@@ -1,0 +1,75 @@
+ENTRY(_start)
+SECTIONS
+{
+	. = 0x100000;
+
+	/* Code */
+	_stext = . ;
+
+	.text :
+	{
+		*(.text)
+		*(.text.*)
+	}
+
+	. = ALIGN(0x1000);
+	_etext = . ;
+
+	/* Read-only data */
+	.rodata :
+	{
+		*(.rodata)
+		*(.rodata.*)
+	}
+	.eh_frame :
+	{
+		*(.eh_frame)
+	}
+
+	. = ALIGN(0x1000);
+	_erodata = .;
+
+	.tdata :
+	{
+		_tdata_start = . ;
+		*(.tdata)
+		_tdata_end = . ;
+	}
+	.tbss :
+	{
+		_tbss_start = . ;
+		*(.tbss)
+		_tbss_end = . ;
+	}
+
+	.initfini :
+	{
+		__init_array_start = . ;
+		*(SORT_BY_INIT_PRIORITY(.init_array.*))
+		*(SORT_BY_INIT_PRIORITY(.ctors*))
+		*(.init_array)
+		__init_array_end = . ;
+		__fini_array_start = . ;
+		*(SORT_BY_INIT_PRIORITY(.fini_array.*))
+		*(SORT_BY_INIT_PRIORITY(.dtors*))
+		*(.fini_array)
+		__fini_array_end = . ;
+	}
+
+	.data :
+	{
+		*(.data)
+	}
+
+	. = ALIGN(0x1000);
+	_edata = . ;
+	.bss :
+	{
+		*(.bss)
+		*(COMMON)
+	}
+	
+	. = ALIGN(0x1000);
+	_ebss = .;
+	_end = .;
+}

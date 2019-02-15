@@ -248,7 +248,7 @@ rumprun_lwp_init(void)
 }
 
 int
-_lwp_park(clockid_t clock_id, int flags, const struct timespec *ts,
+_lwp_park(clockid_t clock_id, int flags, struct timespec *ts,
 	lwpid_t unpark, const void *hint, const void *unparkhint)
 {
 	int rv;

@@ -600,7 +600,6 @@ bmk_sched_exit_withtls(void)
 void
 bmk_sched_exit(void)
 {
-
 	bmk_sched_tls_free((void *)bmk_current->bt_tcb.btcb_tp);
 	bmk_sched_exit_withtls();
 }
