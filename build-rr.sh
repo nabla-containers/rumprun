@@ -318,12 +318,14 @@ checktools ()
 	    /__GNUC_MINOR__/ {version += $3}
 	    END { print version; if (version) exit 0; exit 1; }') \
 		|| unable to probe cc version
-	if [ ${vers} -lt 406 ]; then
-		die gcc is too old, need 4.6 or later. ${CC:+(\$CC: $CC)}
-	elif [ ${vers} -lt 408 ]; then
+	if [ ${vers} -lt 500 ]; then
+		die gcc is too old, 6.0 or later is recommended. ${CC:+(\$CC: $CC)}
+	elif [ ${vers} -lt 600 ]; then
+		[ "${MACHINE_GNU_ARCH}" != "aarch64" ] && \
+			die gcc is too old, need 6.0 or later. ${CC:+(\$CC: $CC)}
 		echo '>>'
 		echo ">> WARNING: gcc is old. ${CC:+(\$CC: $CC)}"
-		echo '>> Version 4.8 or later is recommended.'
+		echo '>> Version 6.0 or later is recommended.'
 		echo ">> (continuing in ${delay} seconds)"
 		echo '>>'
 		sleep ${delay}
