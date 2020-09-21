@@ -389,6 +389,14 @@ buildrump ()
 	#
 	[ `${CC} -dumpversion | cut -f1 -d.` -ge 7 ] \
 		&& extracflags="$extracflags -F CPPFLAGS=-Wimplicit-fallthrough=0"
+	[ `${CC} -dumpversion | cut -f1 -d.` -ge 7 ] \
+		&& extracflags="$extracflags -F CPPFLAGS=-Wno-maybe-uninitialized"
+	[ `${CC} -dumpversion | cut -f1 -d.` -ge 7 ] \
+		&& extracflags="$extracflags -F CPPFLAGS=-Wno-cast-function-type"
+	[ `${CC} -dumpversion | cut -f1 -d.` -ge 7 ] \
+		&& extracflags="$extracflags -F CPPFLAGS=-Wno-tautological-compare"
+	[ `${CC} -dumpversion | cut -f1 -d.` -ge 7 ] \
+		&& extracflags="$extracflags -F CPPFLAGS=-Wno-attributes"
 
 
 	extracflags="${extracflags} ${TLSCFLAGS} ${FREQ_SETUP}"
