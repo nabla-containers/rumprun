@@ -4,3 +4,5 @@
 *.ukvm
 *.seccomp
 *dummy
+obj-*
+rumprun-*

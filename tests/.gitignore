@@ -1,0 +1,5 @@
+bats/test_dir
+bats/*.ext2
+bats/*.iso
+cmake/build
+testrun.*
