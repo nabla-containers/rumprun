@@ -75,6 +75,7 @@ test_apptools()
 
 	if [ -n "${TESTCMAKE}" ]; then
 		(
+			rm -rf cmake/build
 			mkdir -p cmake/build
 			cd cmake/build
 			cmake -DCMAKE_TOOLCHAIN_FILE=${RRDEST}/rumprun-${MACHINE_GNU_ARCH}/share/${TOOLTUPLE}-toolchain.cmake ..
