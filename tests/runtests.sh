@@ -75,18 +75,31 @@ ddimage ()
 	dd if=${imgsource} of=${imgname} bs=512 count=${blocks} > /dev/null 2>&1
 }
 
+createtap ()
+{
+	net=$1
+	ip link show ${net}
+	if [ $? -ne 0 ]; then
+		[ $(id -u) -ne 0 ] && die need root to create a tap
+		ip tuntap add ${net} mode tap
+		ip addr add 10.0.0.1/24 dev ${net}
+		ip link set dev ${net} up
+	fi
+}
+
 runguest ()
 {
 
 	testprog=$1
 	img1=$2
+	net1=$3
 	# notyet
 	# img2=$3
 
 	[ -n "${img1}" ] || die runtest without a disk image
 	case "${STACK}" in
 	spt)
-		cookie=$(${SOLO5_SPT} --disk=${img1} ${testprog} '{"cmdline":"testprog __test","blk":{"source":"etfs","path":"ld0d","fstype":"blk"}}')
+		cookie=$(${SOLO5_SPT} --block:rootfs=${img1} --net:tap=tap100 ${testprog} '{"cmdline":"testprog __test","blk":{"source":"etfs","path":"ld0d","fstype":"blk"}}')
 		;;
 	hvt)
 		cookie=$(${SOLO5_HVT} --disk=${img1} ${testprog} '{"cmdline":"testprog __test","blk":{"source":"etfs","path":"ld0d","fstype":"blk"}}')
@@ -152,6 +165,7 @@ runtest ()
 	bin=$1
 
 	ddimage disk.img 1024
+	createtap tap100
 	runtest tester disk.img
 }
 
@@ -177,9 +191,11 @@ for test in ${TESTS}; do
 
 	testunder="$(echo ${test} | sed s,/,_,g)"
 	outputimg=${testunder}.disk1
+	net=tap100
 
 	ddimage ${outputimg} $((2*512))
-	runguest ${TOPDIR}/${test} ${outputimg}
+	createtap ${net}
+	runguest ${TOPDIR}/${test} ${outputimg} ${net}
 
 	echo ">> Test output for ${test}"
 	getoutput ${outputimg}
