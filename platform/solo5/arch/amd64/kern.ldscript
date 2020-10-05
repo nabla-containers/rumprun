@@ -1,92 +1,160 @@
-OUTPUT_FORMAT("elf64-x86-64", "elf64-x86-64", "elf64-x86-64")
-OUTPUT_ARCH(i386:x86-64)
+/*
+ * Copyright (c) 2015-2019 Contributors as noted in the AUTHORS file
+ *
+ * This file is part of Solo5, a sandboxed execution environment.
+ *
+ * Permission to use, copy, modify, and/or distribute this software
+ * for any purpose with or without fee is hereby granted, provided
+ * that the above copyright notice and this permission notice appear
+ * in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
+ * OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
+ * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+ * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
+/*
+ * This is the custom linker script for the Solo5 'spt' target.
+ *
+ * The script is tested to work with a minimal set of input sections. If there
+ * are unexpected input sections not named here, the result will probably not be
+ * correct.
+ */
+TEXT_START = 0x100000;
+
 ENTRY(_start)
 
-SECTIONS
-{
-	. = 0x100000;
-	_begin = . ;
+/*
+ * Program headers: In order to force the linker to place each of our NOTEs
+ * into a separate PT_NOTE header, we need lay these out explicitly.
+ */
+PHDRS {
+    interp PT_INTERP;
+    text PT_LOAD FLAGS(5); /* No FILEHDR or PHDRS, force R/E only.
+                              FLAGS values come from PF_x in elf.h */
+    data PT_LOAD;
+    note.not-openbsd PT_NOTE; /* Must come first. */
+    note.abi PT_NOTE;
+    note.manifest PT_NOTE;
+}
 
-	.bootstrap :
-	{
-		*(.bootstrap)
-	}
+/*
+ * Output sections.
+ */
+SECTIONS {
+    . = TEXT_START; /* No + SIZEOF_HEADERS */
 
-	. = ALIGN(0x1000);
+    /*
+     * :text: The following input sections are placed in the R/E :text segment.
+     */
+    _stext = .;
 
-        /* Code */
-	_stext = . ;
+    .interp : {
+        *(.interp)
+    } :interp :text
 
-	.text :
-	AT (ADDR(.text))
-	{
-		*(.text)
-		*(.text.*)
-		*(.stub)
-		*(.note*)
-	}
-	_etext = . ;
+    .text :
+    {
+        *(.text)
+        *(.text.*)
+    } :text
 
-	.rodata :
-	AT (LOADADDR(.text) + (ADDR(.rodata) - ADDR(.text)))
-	{
-		*(.rodata)
-		*(.rodata.*)
-	}
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
+    _etext = .;
 
-        _erodata = .;
+    /* Read-only data */
 
-	.initfini :
-	AT (LOADADDR(.text) + (ADDR(.initfini) - ADDR(.text)))
-	{
-		__init_array_start = . ;
-		*(SORT_BY_INIT_PRIORITY(.init_array.*))
-		*(SORT_BY_INIT_PRIORITY(.ctors*))
-		*(.init_array)
-		__init_array_end = . ;
-		__fini_array_start = . ;
-		*(SORT_BY_INIT_PRIORITY(.fini_array.*))
-		*(SORT_BY_INIT_PRIORITY(.dtors*))
-		*(.fini_array)
-		__fini_array_end = . ;
-	}
+    /* For Spt, the ABI and MFT NOTEs are read-only and can be in :text. */
+    .note.solo5.manifest :
+    {
+        *(.note.solo5.manifest*)
+    } :text :note.manifest
+    .note.solo5.abi :
+    {
+        *(.note.solo5.abi*)
+    } :text :note.abi
+    .note.solo5.not-openbsd :
+    {
+        *(.note.solo5.not-openbsd*)
+    } :text :note.not-openbsd
 
-	. = ALIGN(0x1000);
+    .rodata :
+    {
+        *(.rodata)
+        *(.rodata.*)
+    } :text
+    .eh_frame :
+    {
+        *(.eh_frame)
+    }
 
-	_data_start = .;
-	.data :
-	AT (LOADADDR(.text) + (ADDR(.data) - ADDR(.text)))
-	{
-		*(.data)
-		*(.data.*)
-	}
-	.tdata : {
-		_tdata_start = . ;
-		*(.tdata)
-		_tdata_end = . ;
-	}
-	_edata = . ;
-	.tbss : {
-		_tbss_start = . ;
-		*(.tbss)
-		_tbss_end = . ;
-	}
+    .initfini :
+    {
+        __init_array_start = . ;
+        *(SORT_BY_INIT_PRIORITY(.init_array.*))
+        *(SORT_BY_INIT_PRIORITY(.ctors*))
+        *(.init_array)
+        __init_array_end = . ;
+        __fini_array_start = . ;
+        *(SORT_BY_INIT_PRIORITY(.fini_array.*))
+        *(SORT_BY_INIT_PRIORITY(.dtors*))
+        *(.fini_array)
+        __fini_array_end = . ;
+    }
 
-	__bss_start = . ;
-	.bss :
-	AT (LOADADDR(.text) + (ADDR(.bss) - ADDR(.text)))
-	{
-		*(.bss)
-		*(.bss.*)
-		*(COMMON)
-	}
-	.lbss :
-	AT (LOADADDR(.text) + (ADDR(.lbss) - ADDR(.text)))
-	{
-		*(.lbss)
-		*(.lbss.*)
-		*(LARGE_COMMON)
-	}
-	_ebss = . ;
-	_end = . ;
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
+    _erodata = .;
+
+    /*
+     * :data: The following input sections are placed in the R/W :data segment.
+     */
+
+    /* Read-write data (initialized) */
+    .got :
+    {
+        *(.got.plt)
+        *(.got)
+    } :data
+    .data :
+    {
+        *(.data)
+        *(.data.*)
+    }
+    .tdata :
+    {
+        _tdata_start = .;
+        *(.tdata)
+        _tdata_end = .;
+    }
+
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
+    _edata = .;
+
+    /* Read-write data (uninitialized) */
+    .tbss :
+    {
+        _tbss_start = .;
+        *(.tbss)
+        _tbss_end = .;
+    }
+    .bss :
+    {
+        *(.bss)
+        *(COMMON)
+    }
+
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
+    _ebss = .;
+    _end = .;
+
+    /* We are not building a GNU executable, so discard any default NOTEs the
+       toolchain might generate to prevent any surprises in the final layout. */
+    /DISCARD/ : {
+        *(.note.gnu.*)
+    }
 }

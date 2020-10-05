@@ -18,6 +18,9 @@ endif
 ARCHDIR?= ${MACHINE}
 HW_MACHINE_ARCH?= ${MACHINE_GNU_ARCH}
 
+SOLO5DIR?=../../solo5
+ELFTOOL?=${SOLO5DIR}/elftool/solo5-elftool
+
 # XXX simplify kern.ldscript (some stuff is not needed anymore on solo5)
 # of even better, we could use the solo5 linker script
 LDSCRIPT:=	$(abspath arch/${ARCHDIR}/kern.ldscript)
@@ -29,6 +32,7 @@ include ../Makefile.inc
 include arch/${ARCHDIR}/Makefile.inc
 
 OBJS:=	$(patsubst %.c,${RROBJ}/platform/%.o,${SRCS})
+OBJS+= ${RROBJ}/platform/manifest.o
 
 # Disable PIE, but need to check if compiler supports it
 LDFLAGS-$(call cc-option,-no-pie) += -no-pie
@@ -52,6 +56,12 @@ ${RROBJ}/platform/%.o: %.c
 
 ${RROBJ}/platform/%.o: %.S
 	${CC} -D_LOCORE ${CPPFLAGS} ${CFLAGS} -c $< -o $@
+
+${RROBJ}/platform/manifest.o: ${RROBJ}/platform/manifest.c
+	${CC} ${CPPFLAGS} ${CFLAGS} -c $< -o $@
+
+${RROBJ}/platform/manifest.c: manifest.json
+	${ELFTOOL} gen-manifest $< $@
 
 $(eval $(call BUILDLIB_target,librumpnet_ukvmif,.))
 

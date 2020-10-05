@@ -1,0 +1,9 @@
+{
+  "type": "solo5.manifest",
+  "version": 1,
+  "devices":
+  [
+    { "name": "rootfs", "type": "BLOCK_BASIC" },
+    { "name": "tap", "type": "NET_BASIC" }
+  ]
+}

@@ -64,5 +64,5 @@ int solo5_app_main(const struct solo5_start_info *si)
 	bmk_sched_startmain(bmk_mainthread, (void *)solo5_cmdline);
 
 	/* not reachable */
-	solo5_exit(0);
+	solo5_exit(SOLO5_EXIT_SUCCESS);
 }

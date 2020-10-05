@@ -55,5 +55,4 @@ void
 cons_puts(const char *s)
 {
 	solo5_console_write(s, strlen(s));
-
 }
