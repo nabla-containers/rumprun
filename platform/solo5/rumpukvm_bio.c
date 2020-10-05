@@ -39,6 +39,11 @@
 
 #define XENBLK_MAGIC "XENBLK_"
 
+#define SOLO5_BLK_NAME "rootfs"
+
+static solo5_handle_t blk_handle = 0;
+static struct solo5_block_info blk_info;
+
 static int sector_size = 512;
 
 
@@ -59,7 +64,7 @@ devname2num(const char *name)
 int
 rumpuser_open(const char *name, int mode, int *fdp)
 {
-        struct solo5_block_info bi;
+	solo5_result_t ret;
 	int num;
 
 	if (bmk_strncmp(name, XENBLK_MAGIC, sizeof(XENBLK_MAGIC)-1) != 0)
@@ -67,8 +72,12 @@ rumpuser_open(const char *name, int mode, int *fdp)
 	if ((mode & RUMPUSER_OPEN_BIO) == 0 || (num = devname2num(name)) == -1)
 		return BMK_ENXIO;
 
-        solo5_block_info(&bi);
-	sector_size = bi.block_size;
+	if (blk_handle == 0) {
+		ret = solo5_block_acquire(SOLO5_BLK_NAME, &blk_handle, &blk_info);
+		if (ret != SOLO5_R_OK)
+			return -1;
+	}
+	sector_size = blk_info.block_size;
 	*fdp = BLKFDOFF + num;
 	return 0;
 }
@@ -82,7 +91,7 @@ rumpuser_close(int fd)
 int
 rumpuser_getfileinfo(const char *name, uint64_t *size, int *type)
 {
-        struct solo5_block_info bi;
+	solo5_result_t ret;
 	int num;
 
 	if (bmk_strncmp(name, XENBLK_MAGIC, sizeof(XENBLK_MAGIC)-1) != 0)
@@ -90,8 +99,12 @@ rumpuser_getfileinfo(const char *name, uint64_t *size, int *type)
 	if ((num = devname2num(name)) == -1)
 		return BMK_ENXIO;
 
-        solo5_block_info(&bi);
-        *size = bi.capacity;
+	if (blk_handle == 0) {
+		ret = solo5_block_acquire(SOLO5_BLK_NAME, &blk_handle, &blk_info);
+		if (ret != SOLO5_R_OK)
+			return -1;
+	}
+	*size = blk_info.capacity;
 	*type = RUMPUSER_FT_BLK;
 
 	return 0;
@@ -102,6 +115,7 @@ void
 rumpuser_bio(int fd, int op, void *data, size_t dlen, int64_t off,
 	rump_biodone_fn biodone, void *donearg)
 {
+	solo5_result_t ret;
 	int len = (int)dlen;
 	uint64_t curr_off;
 	uint64_t d = (uint64_t)data;
@@ -111,17 +125,22 @@ rumpuser_bio(int fd, int op, void *data, size_t dlen, int64_t off,
 		return;
 	}
 
+	if (blk_handle == 0) {
+		ret = solo5_block_acquire(SOLO5_BLK_NAME, &blk_handle, &blk_info);
+		if (ret != SOLO5_R_OK)
+			return;
+    }
+
 	for (curr_off = off; len > 0; curr_off += sector_size,
 					len -= sector_size,
 					d += sector_size) {
-		int ret;
 		if (op & RUMPUSER_BIO_READ)
-			ret = solo5_block_read(curr_off,
+			ret = solo5_block_read(blk_handle, curr_off,
 						(void *)d, sector_size);
 		else
-			ret = solo5_block_write(curr_off,
+			ret = solo5_block_write(blk_handle, curr_off,
 						(void *)d, sector_size);
-		if (ret != 0) {
+		if (ret != SOLO5_R_OK) {
 			biodone(donearg, curr_off - off, BMK_EIO);
 			return;
 		}

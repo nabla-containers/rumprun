@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
+ * Copyright (c) 2015-2019 Contributors as noted in the AUTHORS file
  *
- * This file is part of Solo5, a unikernel base layer.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -118,6 +118,24 @@ int solo5_app_main(const struct solo5_start_info *info);
 void solo5_exit(int status) __attribute__((noreturn));
 
 /*
+ * Abort the application, returning a status of SOLO5_EXIT_ABORT to the host if
+ * possible.
+ *
+ * This call is intended to signal an abnormal exit to the host. Depending on
+ * the tender configuration, this may trigger further actions such a
+ * generating a core file.
+ */
+void solo5_abort(void) __attribute__((noreturn));
+
+/*
+ * Set the architecture-specific TLS base register to (base).
+ *
+ * Solo5 implementations may return SOLO5_R_EINVAL if the (base) does not
+ * satisfy architecture-specific requirements.
+ */
+solo5_result_t solo5_set_tls_base(uintptr_t base);
+
+/*
  * Time.
  */
 
@@ -137,17 +155,25 @@ solo5_time_t solo5_clock_monotonic(void);
 solo5_time_t solo5_clock_wall(void);
 
 /*
+ * Type for I/O handles.
+ */
+typedef uint64_t solo5_handle_t;
+
+/*
+ * Type for sets of up to 64 I/O handles.
+ */
+typedef uint64_t solo5_handle_set_t;
+
+/*
  * Suspends execution of the application until either:
  *
  *   a) monotonic time reaches (deadline), or
- *   b) solo5_net_read() would succeed.
+ *   b) at least one network device is ready for input.
  *
- * Returns true if solo5_net_read() will succeed, otherwise false.
- *
- * This interface may be extended in the future to allow for selection of I/O
- * events of interest to the application.
+ * If (ready_set) is not NULL, it will be filled in with the set of
+ * solo5_handle_t's ready for input.
  */
-int solo5_yield(solo5_time_t deadline);
+void solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set);
 
 /*
  * Console I/O.
@@ -164,10 +190,6 @@ void solo5_console_write(const char *buf, size_t size);
 
 /*
  * Network I/O.
- *
- * Currently only a single Ethernet-style device is supported.
- *
- * These interfaces will change in the future to support multiple devices.
  */
 
 /*
@@ -185,23 +207,30 @@ struct solo5_net_info {
 };
 
 /*
- * Retrieves information about the network device. Caller must supply space for
- * struct solo5_net_info in (info).
+ * Acquires a handle to the network device declared as (name) in the
+ * application manifest. The returned handle is stored in (*handle), and
+ * properties of the network device are stored in (*info). Caller must supply
+ * space for struct solo5_net_info in (info). This function may only be called
+ * once for each device (name). Subsequent calls will return SOLO5_R_EINVAL.
  */
-void solo5_net_info(struct solo5_net_info *info);
+solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *handle,
+        struct solo5_net_info *info);
 
 /*
- * Sends a single network packet from the buffer (*buf), without blocking.  If
- * the packet cannot be sent due to a transient error (e.g.  no resources
- * available) it will be silently dropped.
+ * Sends a single network packet to the network device identified by (handle),
+ * from the buffer (*buf), without blocking.  If the packet cannot be sent due
+ * to a transient error (e.g.  no resources available) it will be silently
+ * dropped.
  *
  * The maximum allowed value for (size) is (solo5_net_info.mtu +
  * SOLO5_NET_HLEN). The packet must include the ethernet frame header.
  */
-solo5_result_t solo5_net_write(const uint8_t *buf, size_t size);
+solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
+        size_t size);
 
 /*
- * Receives a single network packet into the buffer (*buf), without blocking.
+ * Receives a single network packet from the network device identified by
+ * (handle) into the buffer (*buf), without blocking.
  *
  * (size) must be at least (solo5_net_info.mtu + SOLO5_NET_HLEN).
  *
@@ -209,20 +238,18 @@ solo5_result_t solo5_net_write(const uint8_t *buf, size_t size);
  * SOLO5_R_OK and the size of the received packet including the ethernet frame
  * header in (*read_size).
  */
-solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size);
+solo5_result_t solo5_net_read(solo5_handle_t handle, uint8_t *buf,
+        size_t size, size_t *read_size);
 
 /*
  * Block I/O.
  *
- * Currently only a single block-addressable device is supported.
- *
  * The minimum unit of I/O which can be performed on a block device is defined
  * by solo5_block_info.block_size. In practice we currently also limit the
- * *maximum* unit of I/O to the block size.
+ * *maximum* unit of I/O to a single block.
  *
- * These interfaces will change in the future to support multiple devices and,
- * depending on atomicity guarantees, may be extended to support I/O operations
- * of >1 block per call.
+ * These interfaces, depending on atomicity guarantees, may be extended in the
+ * future to support I/O operations of >1 block per call.
  */
 
 /*
@@ -236,15 +263,19 @@ struct solo5_block_info {
 };
 
 /*
- * Retrieves information about the block device. Caller must supply space for
- * struct solo5_block_info in (info).
+ * Acquires a handle to the block device declared as (name) in the application
+ * manifest. The returned handle is stored in (*handle), and properties of the
+ * block device are stored in (*info). Caller must supply space for struct
+ * solo5_block_info in (info). This function may only be called once for each
+ * device (name). Subsequent calls will return SOLO5_R_EINVAL.
  */
-void solo5_block_info(struct solo5_block_info *info);
+solo5_result_t solo5_block_acquire(const char *name, solo5_handle_t *handle,
+        struct solo5_block_info *info);
 
 /*
- * Writes data of (size) bytes from the buffer (*buf) to the block device,
- * starting at byte (offset). Data is either written in it's entirety or not at
- * all ("short writes" are not possible).
+ * Writes data of (size) bytes from the buffer (*buf) to the block device
+ * identified by (handle), starting at byte (offset). Data is either written in
+ * it's entirety or not at all ("short writes" are not possible).
  *
  * Both (size) and (offset) must be a multiple of the block size, otherwise
  * SOLO5_R_EINVAL is returned.
@@ -252,13 +283,13 @@ void solo5_block_info(struct solo5_block_info *info);
  * NOTE: Current implementations further limit the *maximum* I/O size to a
  * single block.
  */
-solo5_result_t solo5_block_write(solo5_off_t offset, const uint8_t *buf,
-        size_t size);
+solo5_result_t solo5_block_write(solo5_handle_t handle, solo5_off_t offset,
+        const uint8_t *buf, size_t size);
 
 /*
- * Reads data of (size) bytes into the buffer (*buf) from the block device,
- * starting at byte (offset). Always reads the full amount of (size) bytes
- * ("short reads" are not possible).
+ * Reads data of (size) bytes into the buffer (*buf) from the block device
+ * identified by (handle), starting at byte (offset). Always reads the full
+ * amount of (size) bytes ("short reads" are not possible).
  *
  * Both (size) and (offset) must be a multiple of the block size, otherwise
  * SOLO5_R_EINVAL is returned.
@@ -266,6 +297,7 @@ solo5_result_t solo5_block_write(solo5_off_t offset, const uint8_t *buf,
  * NOTE: Current implementations further limit the *maximum* I/O size to a
  * single block.
  */
-solo5_result_t solo5_block_read(solo5_off_t offset, uint8_t *buf, size_t size);
+solo5_result_t solo5_block_read(solo5_handle_t handle, solo5_off_t offset,
+        uint8_t *buf, size_t size);
 
 #endif

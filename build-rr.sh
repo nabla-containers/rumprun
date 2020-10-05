@@ -591,7 +591,10 @@ dobuild ()
 
 	buildpci
 
-	[ "${PLATFORM}" = "solo5" ] && make -C ${SOLO5SRC}
+	[ "${PLATFORM}" = "solo5" ] && \
+	  ( cd ${SOLO5SRC} \
+	    && ./configure.sh \
+	    && make)
 
 	# do final build of the platform bits
 	( cd ${PLATFORMDIR} \

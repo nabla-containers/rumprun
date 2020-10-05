@@ -51,7 +51,7 @@ bmk_platform_halt(const char *panicstring)
 	if (panicstring)
 		bmk_printf("PANIC: %s\n", panicstring);
 	bmk_printf("halted\n");
-	solo5_exit(0);
+	solo5_exit(SOLO5_EXIT_SUCCESS);
 }
 
 void rumpcomp_ukvmif_receive(void);
@@ -59,7 +59,10 @@ void rumpcomp_ukvmif_receive(void);
 void
 bmk_platform_cpu_block(bmk_time_t until_ns)
 {
-	if (solo5_yield(until_ns)) {
+	solo5_handle_set_t ready_set;
+
+	solo5_yield(until_ns, &ready_set);
+	if (ready_set != 0) {
 		rumpcomp_ukvmif_receive();
 	}
 }
