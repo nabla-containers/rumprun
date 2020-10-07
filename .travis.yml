@@ -19,6 +19,7 @@ before_script:
   - sudo apt-get update -y
   - sudo apt-get install qemu-kvm libxen-dev libseccomp-dev bats genisoimage sudo iproute2 wget -y
   - sudo apt-get install --only-upgrade binutils gcc -y
+  - bash travis_wait.sh 60 git clone https://github.com/Solo5/solo5.git
   - bash travis_wait.sh 60 git submodule update --init
 
 env:
