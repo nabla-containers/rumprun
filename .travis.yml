@@ -9,8 +9,8 @@ addons:
     sources:
       - ubuntu-toolchain-r-test
     packages:
-      - gcc-6
-      - g++-6
+      - gcc-7
+      - g++-7
 
 git:
   submodules: false
@@ -26,7 +26,7 @@ env:
   - PLATFORM=hw MACHINE=x86_64 TESTS=none KERNONLY=-k EXTRAFLAGS= 
 
 script:
-  - export CC=gcc-6
+  - export CC=gcc-7
   - NOGCCERROR=1 ./build-rr.sh -o myobj -j16 -qq ${KERNONLY} ${PLATFORM} ${EXTRAFLAGS}
   - . ./myobj/config
   - ./tests/buildtests.sh ${KERNONLY}
